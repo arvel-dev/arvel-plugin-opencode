@@ -1,0 +1,34 @@
+command: opencode --standalone debug config
+exit: 0
+
+--- stdout ---
+[
+  {
+    "type": "document",
+    "path": "/Users/forgest/.config/opencode/opencode.json",
+    "info": {
+      "model": {
+        "providerID": "deepseek",
+        "model": "deepseek-reasoner"
+      },
+      "agents": {
+        "title": {
+          "model": {
+            "providerID": "deepseek",
+            "model": "deepseek-chat"
+          }
+        }
+      },
+      "providers": {
+        "deepseek": {}
+      }
+    }
+  },
+  {
+    "type": "directory",
+    "path": "/Users/forgest/.config/opencode"
+  }
+]
+
+--- stderr ---
+

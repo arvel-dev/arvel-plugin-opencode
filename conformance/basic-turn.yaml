@@ -1,0 +1,17 @@
+name: opencode-basic-turn
+plugin: {}
+initialize:
+  connection: { kind: opencode, config: {} }
+steps:
+  - call: _arvel/status
+    expect: { state: ready }
+  - call: _arvel/models
+    params: { refresh: false }
+  - call: session/new
+    params: { cwd: "{{tmpdir}}", mcpServers: [] }
+    save: { session: $.sessionId }
+  - call: session/prompt
+    params: { sessionId: "{{session}}", prompt: [ { type: text, text: "hello world" } ] }
+    expectUpdates:
+      - sessionUpdate: agent_message_chunk
+    expect: { stopReason: end_turn }

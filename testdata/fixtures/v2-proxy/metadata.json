@@ -1,0 +1,14 @@
+{
+  "scenario": "prompt",
+  "label": "v2-proxy",
+  "bin": "/opt/homebrew/bin/opencode",
+  "version": "opencode v2.2.5",
+  "os": "darwin",
+  "arch": "arm64",
+  "captured": "2026-10-31T11:24:48Z",
+  "env": {
+    "ALL_PROXY": "http://127.0.0.1:1",
+    "HTTPS_PROXY": "http://127.0.0.1:1",
+    "NO_PROXY": "127.0.0.1,localhost,::1"
+  }
+}

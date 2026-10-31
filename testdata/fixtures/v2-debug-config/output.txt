@@ -1,0 +1,67 @@
+command: opencode debug config
+exit: 0
+
+--- stdout ---
+[
+  {
+    "type": "document",
+    "path": "/Users/forgest/.config/opencode/opencode.json",
+    "info": {
+      "model": {
+        "providerID": "deepseek",
+        "model": "deepseek-reasoner"
+      },
+      "agents": {
+        "title": {
+          "model": {
+            "providerID": "deepseek",
+            "model": "deepseek-chat"
+          }
+        }
+      },
+      "providers": {
+        "deepseek": {}
+      }
+    }
+  },
+  {
+    "type": "directory",
+    "path": "/Users/forgest/.config/opencode"
+  },
+  {
+    "type": "document",
+    "path": "/Users/forgest/Projects/Arvel-projects/arvel-plugin-opencode/opencode.json",
+    "info": {
+      "mcp": {
+        "servers": {
+          "github": {
+            "type": "local",
+            "command": [
+              "npx",
+              "-y",
+              "@modelcontextprotocol/server-github"
+            ],
+            "environment": {
+              "GITHUB_TOKEN": "***"
+            }
+          },
+          "playwright": {
+            "type": "local",
+            "command": [
+              "npx",
+              "-y",
+              "@playwright/mcp@latest"
+            ]
+          }
+        }
+      }
+    }
+  },
+  {
+    "type": "directory",
+    "path": "/Users/forgest/Projects/Arvel-projects/arvel-plugin-opencode/.opencode"
+  }
+]
+
+--- stderr ---
+

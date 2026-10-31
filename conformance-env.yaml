@@ -1,0 +1,8 @@
+# Template for `arvel-plugin-check --test-env`. Values in <...> are filled in by
+# the conformance runner before a run; the checked-in file is never a ready
+# connection to a real CLI.
+initialize:
+  connection:
+    kind: opencode
+    config:
+      opencodePath: <opencodePath>

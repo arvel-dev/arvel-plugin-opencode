@@ -1,0 +1,9 @@
+{
+  "scenario": "handshake",
+  "label": "v2-handshake",
+  "bin": "/opt/homebrew/bin/opencode",
+  "version": "opencode v2.2.5",
+  "os": "darwin",
+  "arch": "arm64",
+  "captured": "2026-10-31T11:17:58Z"
+}

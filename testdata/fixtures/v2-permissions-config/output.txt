@@ -1,0 +1,102 @@
+command: opencode --standalone debug config
+exit: 0
+
+--- stdout ---
+[
+  {
+    "type": "document",
+    "path": "/Users/forgest/.config/opencode/opencode.json",
+    "info": {
+      "model": {
+        "providerID": "deepseek",
+        "model": "deepseek-reasoner"
+      },
+      "agents": {
+        "title": {
+          "model": {
+            "providerID": "deepseek",
+            "model": "deepseek-chat"
+          }
+        }
+      },
+      "providers": {
+        "deepseek": {}
+      }
+    }
+  },
+  {
+    "type": "directory",
+    "path": "/Users/forgest/.config/opencode"
+  },
+  {
+    "type": "document",
+    "path": "/Users/forgest/Projects/Arvel-projects/arvel-plugin-opencode/opencode.json",
+    "info": {
+      "mcp": {
+        "servers": {
+          "github": {
+            "type": "local",
+            "command": [
+              "npx",
+              "-y",
+              "@modelcontextprotocol/server-github"
+            ],
+            "environment": {
+              "GITHUB_TOKEN": "***"
+            }
+          },
+          "playwright": {
+            "type": "local",
+            "command": [
+              "npx",
+              "-y",
+              "@playwright/mcp@latest"
+            ]
+          }
+        }
+      }
+    }
+  },
+  {
+    "type": "directory",
+    "path": "/Users/forgest/Projects/Arvel-projects/arvel-plugin-opencode/.opencode"
+  },
+  {
+    "type": "document",
+    "info": {
+      "permissions": [
+        {
+          "action": "*",
+          "resource": "*",
+          "effect": "ask"
+        },
+        {
+          "action": "shell",
+          "resource": "*",
+          "effect": "ask"
+        },
+        {
+          "action": "shell",
+          "resource": "git *",
+          "effect": "allow"
+        },
+        {
+          "action": "shell",
+          "resource": "rm *",
+          "effect": "deny"
+        },
+        {
+          "action": "edit",
+          "resource": "*",
+          "effect": "deny"
+        }
+      ],
+      "instructions": [
+        "AGENTS.md"
+      ]
+    }
+  }
+]
+
+--- stderr ---
+

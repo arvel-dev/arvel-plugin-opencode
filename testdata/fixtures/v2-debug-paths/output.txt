@@ -1,0 +1,17 @@
+command: opencode debug paths
+exit: 0
+
+--- stdout ---
+home       /Users/forgest
+data       /Users/forgest/.local/share/opencode
+cache      /Users/forgest/.cache/opencode
+config     /Users/forgest/.config/opencode
+state      /Users/forgest/.local/state/opencode
+tmp        /private/var/folders/zj/4f8g17cs535767hc45j6m25c0000gn/T/opencode
+bin        /Users/forgest/.cache/opencode/bin
+log        /Users/forgest/.local/share/opencode/log
+repos      /Users/forgest/.local/share/opencode/repos
+db         /Users/forgest/.local/share/opencode/opencode.db
+
+--- stderr ---
+

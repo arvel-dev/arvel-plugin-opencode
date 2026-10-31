@@ -1,0 +1,32 @@
+command: opencode debug config
+exit: 0
+
+--- stdout ---
+{
+  "$schema": "https://opencode.ai/config.json",
+  "provider": {
+    "deepseek": {}
+  },
+  "model": "deepseek/deepseek-reasoner",
+  "small_model": "deepseek/deepseek-chat",
+  "instructions": [
+    "PROJECT_MARKER.md",
+    "AGENTS.md"
+  ],
+  "permission": {
+    "edit": "deny",
+    "*": "ask",
+    "bash": {
+      "*": "ask",
+      "git *": "allow"
+    }
+  },
+  "agent": {},
+  "mode": {},
+  "plugin": [],
+  "command": {},
+  "username": "forgest"
+}
+
+--- stderr ---
+

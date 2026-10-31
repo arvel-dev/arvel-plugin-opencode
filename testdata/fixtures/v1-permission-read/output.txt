@@ -1,0 +1,44 @@
+command: opencode debug config
+exit: 0
+
+--- stdout ---
+{
+  "$schema": "https://opencode.ai/config.json",
+  "provider": {
+    "deepseek": {}
+  },
+  "model": "deepseek/deepseek-reasoner",
+  "small_model": "deepseek/deepseek-chat",
+  "mcp": {
+    "github": {
+      "type": "local",
+      "command": [
+        "npx",
+        "-y",
+        "@modelcontextprotocol/server-github"
+      ],
+      "environment": {
+        "GITHUB_TOKEN": "***"
+      }
+    },
+    "playwright": {
+      "type": "local",
+      "command": [
+        "npx",
+        "-y",
+        "@playwright/mcp@latest"
+      ]
+    }
+  },
+  "agent": {},
+  "mode": {},
+  "plugin": [],
+  "command": {},
+  "permission": {
+    "read": "deny"
+  },
+  "username": "forgest"
+}
+
+--- stderr ---
+

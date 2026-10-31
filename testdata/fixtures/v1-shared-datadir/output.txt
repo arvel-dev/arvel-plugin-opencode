@@ -1,0 +1,10 @@
+command: opencode models
+exit: 1
+
+--- stdout ---
+
+--- stderr ---
+[91m[1mError: [0mUnexpected error
+
+Database is not empty and has no session table
+

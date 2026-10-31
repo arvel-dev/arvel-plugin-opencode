@@ -1,0 +1,569 @@
+[
+  {
+    "label": "v1-0-handshake",
+    "scenario": "handshake",
+    "path": "v1-0-handshake",
+    "version": "1.0.0",
+    "os": "darwin",
+    "arch": "arm64",
+    "captured": "2026-10-31T11:37:33Z"
+  },
+  {
+    "label": "v1-0-session-new",
+    "scenario": "session-new",
+    "path": "v1-0-session-new",
+    "version": "1.0.0",
+    "os": "darwin",
+    "arch": "arm64",
+    "captured": "2026-10-31T11:37:34Z"
+  },
+  {
+    "label": "v1-1.3.15-session-new",
+    "scenario": "session-new",
+    "path": "v1-1.3.15-session-new",
+    "version": "1.3.15",
+    "os": "darwin",
+    "arch": "arm64",
+    "captured": "2026-10-31T11:44:55Z"
+  },
+  {
+    "label": "v1-1.3.16-config-error",
+    "scenario": "config-error",
+    "path": "v1-1.3.16-config-error",
+    "version": "1.3.16",
+    "os": "darwin",
+    "arch": "arm64",
+    "captured": "2026-10-31T11:45:03Z"
+  },
+  {
+    "label": "v1-1.3.16-session-new",
+    "scenario": "session-new",
+    "path": "v1-1.3.16-session-new",
+    "version": "1.3.16",
+    "os": "darwin",
+    "arch": "arm64",
+    "captured": "2026-10-31T11:44:59Z"
+  },
+  {
+    "label": "v1-auth-list",
+    "scenario": "auth-list",
+    "path": "v1-auth-list",
+    "version": "1.19.5",
+    "os": "darwin",
+    "arch": "arm64",
+    "captured": "2026-10-31T11:32:49Z"
+  },
+  {
+    "label": "v1-auth-list-stored",
+    "scenario": "auth-list",
+    "path": "v1-auth-list-stored",
+    "version": "1.19.5",
+    "os": "darwin",
+    "arch": "arm64",
+    "captured": "2026-10-31T11:33:03Z"
+  },
+  {
+    "label": "v1-config-error",
+    "scenario": "config-error",
+    "path": "v1-config-error",
+    "version": "1.19.5",
+    "os": "darwin",
+    "arch": "arm64",
+    "captured": "2026-10-31T11:33:47Z"
+  },
+  {
+    "label": "v1-debug-config",
+    "scenario": "debug-config",
+    "path": "v1-debug-config",
+    "version": "1.19.5",
+    "os": "darwin",
+    "arch": "arm64",
+    "captured": "2026-10-31T11:32:50Z"
+  },
+  {
+    "label": "v1-debug-config-noproject",
+    "scenario": "debug-config",
+    "path": "v1-debug-config-noproject",
+    "version": "1.19.5",
+    "os": "darwin",
+    "arch": "arm64",
+    "captured": "2026-10-31T11:35:29Z"
+  },
+  {
+    "label": "v1-debug-config-project",
+    "scenario": "debug-config",
+    "path": "v1-debug-config-project",
+    "version": "1.19.5",
+    "os": "darwin",
+    "arch": "arm64",
+    "captured": "2026-10-31T11:35:29Z"
+  },
+  {
+    "label": "v1-debug-help",
+    "scenario": "debug-help",
+    "path": "v1-debug-help",
+    "version": "1.19.5",
+    "os": "darwin",
+    "arch": "arm64",
+    "captured": "2026-10-31T11:44:47Z"
+  },
+  {
+    "label": "v1-debug-paths",
+    "scenario": "debug-paths",
+    "path": "v1-debug-paths",
+    "version": "1.19.5",
+    "os": "darwin",
+    "arch": "arm64",
+    "captured": "2026-10-31T11:32:49Z"
+  },
+  {
+    "label": "v1-effort",
+    "scenario": "prompt",
+    "path": "v1-effort",
+    "version": "1.19.5",
+    "os": "darwin",
+    "arch": "arm64",
+    "captured": "2026-10-31T11:34:05Z"
+  },
+  {
+    "label": "v1-effort-error",
+    "scenario": "effort-error",
+    "path": "v1-effort-error",
+    "version": "1.19.5",
+    "os": "darwin",
+    "arch": "arm64",
+    "captured": "2026-10-31T11:33:45Z"
+  },
+  {
+    "label": "v1-handshake",
+    "scenario": "handshake",
+    "path": "v1-handshake",
+    "version": "1.19.5",
+    "os": "darwin",
+    "arch": "arm64",
+    "captured": "2026-10-31T11:33:04Z"
+  },
+  {
+    "label": "v1-inline-config",
+    "scenario": "session-new",
+    "path": "v1-inline-config",
+    "version": "1.19.5",
+    "os": "darwin",
+    "arch": "arm64",
+    "captured": "2026-10-31T11:35:27Z"
+  },
+  {
+    "label": "v1-instructions",
+    "scenario": "prompt",
+    "path": "v1-instructions",
+    "version": "1.19.5",
+    "os": "darwin",
+    "arch": "arm64",
+    "captured": "2026-10-31T11:34:24Z"
+  },
+  {
+    "label": "v1-models",
+    "scenario": "models",
+    "path": "v1-models",
+    "version": "1.19.5",
+    "os": "darwin",
+    "arch": "arm64",
+    "captured": "2026-10-31T11:32:48Z"
+  },
+  {
+    "label": "v1-models-verbose",
+    "scenario": "models",
+    "path": "v1-models-verbose",
+    "version": "1.19.5",
+    "os": "darwin",
+    "arch": "arm64",
+    "captured": "2026-10-31T11:33:33Z"
+  },
+  {
+    "label": "v1-permission-always-run1",
+    "scenario": "prompt",
+    "path": "v1-permission-always-run1",
+    "version": "1.19.5",
+    "os": "darwin",
+    "arch": "arm64",
+    "captured": "2026-10-31T11:47:38Z"
+  },
+  {
+    "label": "v1-permission-always-run2",
+    "scenario": "prompt",
+    "path": "v1-permission-always-run2",
+    "version": "1.19.5",
+    "os": "darwin",
+    "arch": "arm64",
+    "captured": "2026-10-31T11:47:43Z"
+  },
+  {
+    "label": "v1-permission-read",
+    "scenario": "debug-config",
+    "path": "v1-permission-read",
+    "version": "1.19.5",
+    "os": "darwin",
+    "arch": "arm64",
+    "captured": "2026-10-31T11:45:08Z"
+  },
+  {
+    "label": "v1-permission-run1",
+    "scenario": "prompt",
+    "path": "v1-permission-run1",
+    "version": "1.19.5",
+    "os": "darwin",
+    "arch": "arm64",
+    "captured": "2026-10-31T11:47:18Z"
+  },
+  {
+    "label": "v1-permission-run2",
+    "scenario": "prompt",
+    "path": "v1-permission-run2",
+    "version": "1.19.5",
+    "os": "darwin",
+    "arch": "arm64",
+    "captured": "2026-10-31T11:47:22Z"
+  },
+  {
+    "label": "v1-permissions-config",
+    "scenario": "debug-config",
+    "path": "v1-permissions-config",
+    "version": "1.19.5",
+    "os": "darwin",
+    "arch": "arm64",
+    "captured": "2026-10-31T11:35:28Z"
+  },
+  {
+    "label": "v1-prompt",
+    "scenario": "prompt",
+    "path": "v1-prompt",
+    "version": "1.19.5",
+    "os": "darwin",
+    "arch": "arm64",
+    "captured": "2026-10-31T11:34:21Z"
+  },
+  {
+    "label": "v1-proxy",
+    "scenario": "prompt",
+    "path": "v1-proxy",
+    "version": "1.19.5",
+    "os": "darwin",
+    "arch": "arm64",
+    "captured": "2026-10-31T11:36:44Z"
+  },
+  {
+    "label": "v1-resume",
+    "scenario": "resume",
+    "path": "v1-resume",
+    "version": "1.19.5",
+    "os": "darwin",
+    "arch": "arm64",
+    "captured": "2026-10-31T11:33:49Z"
+  },
+  {
+    "label": "v1-session-new",
+    "scenario": "session-new",
+    "path": "v1-session-new",
+    "version": "1.19.5",
+    "os": "darwin",
+    "arch": "arm64",
+    "captured": "2026-10-31T11:33:10Z"
+  },
+  {
+    "label": "v1-shared-datadir",
+    "scenario": "models",
+    "path": "v1-shared-datadir",
+    "version": "1.19.5",
+    "os": "darwin",
+    "arch": "arm64",
+    "captured": "2026-10-31T11:46:08Z"
+  },
+  {
+    "label": "v1-skills",
+    "scenario": "prompt",
+    "path": "v1-skills",
+    "version": "1.19.5",
+    "os": "darwin",
+    "arch": "arm64",
+    "captured": "2026-10-31T11:35:02Z"
+  },
+  {
+    "label": "v1-skills-no-claude",
+    "scenario": "prompt",
+    "path": "v1-skills-no-claude",
+    "version": "1.19.5",
+    "os": "darwin",
+    "arch": "arm64",
+    "captured": "2026-10-31T11:45:25Z"
+  },
+  {
+    "label": "v1-skills-no-external",
+    "scenario": "prompt",
+    "path": "v1-skills-no-external",
+    "version": "1.19.5",
+    "os": "darwin",
+    "arch": "arm64",
+    "captured": "2026-10-31T11:35:16Z"
+  },
+  {
+    "label": "v1-subagent",
+    "scenario": "prompt",
+    "path": "v1-subagent",
+    "version": "1.19.5",
+    "os": "darwin",
+    "arch": "arm64",
+    "captured": "2026-10-31T11:34:41Z"
+  },
+  {
+    "label": "v1-version",
+    "scenario": "version",
+    "path": "v1-version",
+    "version": "1.19.5",
+    "os": "darwin",
+    "arch": "arm64",
+    "captured": "2026-10-31T11:32:02Z"
+  },
+  {
+    "label": "v2-auth-list",
+    "scenario": "auth-list",
+    "path": "v2-auth-list",
+    "version": "opencode v2.2.5",
+    "os": "darwin",
+    "arch": "arm64",
+    "captured": "2026-10-31T11:17:58Z"
+  },
+  {
+    "label": "v2-config-error",
+    "scenario": "config-error",
+    "path": "v2-config-error",
+    "version": "opencode v2.2.5",
+    "os": "darwin",
+    "arch": "arm64",
+    "captured": "2026-10-31T11:21:31Z"
+  },
+  {
+    "label": "v2-debug-agents",
+    "scenario": "debug-agents",
+    "path": "v2-debug-agents",
+    "version": "opencode v2.2.5",
+    "os": "darwin",
+    "arch": "arm64",
+    "captured": "2026-10-31T11:18:30Z"
+  },
+  {
+    "label": "v2-debug-config",
+    "scenario": "debug-config",
+    "path": "v2-debug-config",
+    "version": "opencode v2.2.5",
+    "os": "darwin",
+    "arch": "arm64",
+    "captured": "2026-10-31T11:18:30Z"
+  },
+  {
+    "label": "v2-debug-config-noproject",
+    "scenario": "debug-config",
+    "path": "v2-debug-config-noproject",
+    "version": "opencode v2.2.5",
+    "os": "darwin",
+    "arch": "arm64",
+    "captured": "2026-10-31T11:21:08Z"
+  },
+  {
+    "label": "v2-debug-help",
+    "scenario": "debug-help",
+    "path": "v2-debug-help",
+    "version": "opencode v2.2.5",
+    "os": "darwin",
+    "arch": "arm64",
+    "captured": "2026-10-31T11:44:47Z"
+  },
+  {
+    "label": "v2-debug-paths",
+    "scenario": "debug-paths",
+    "path": "v2-debug-paths",
+    "version": "opencode v2.2.5",
+    "os": "darwin",
+    "arch": "arm64",
+    "captured": "2026-10-31T11:18:30Z"
+  },
+  {
+    "label": "v2-debug-skill",
+    "scenario": "debug-skill",
+    "path": "v2-debug-skill",
+    "version": "opencode v2.2.5",
+    "os": "darwin",
+    "arch": "arm64",
+    "captured": "2026-10-31T11:28:43Z"
+  },
+  {
+    "label": "v2-handshake",
+    "scenario": "handshake",
+    "path": "v2-handshake",
+    "version": "opencode v2.2.5",
+    "os": "darwin",
+    "arch": "arm64",
+    "captured": "2026-10-31T11:17:58Z"
+  },
+  {
+    "label": "v2-inline-config",
+    "scenario": "session-new",
+    "path": "v2-inline-config",
+    "version": "opencode v2.2.5",
+    "os": "darwin",
+    "arch": "arm64",
+    "captured": "2026-10-31T11:20:55Z"
+  },
+  {
+    "label": "v2-instructions",
+    "scenario": "prompt",
+    "path": "v2-instructions",
+    "version": "opencode v2.2.5",
+    "os": "darwin",
+    "arch": "arm64",
+    "captured": "2026-10-31T11:27:12Z"
+  },
+  {
+    "label": "v2-models",
+    "scenario": "models",
+    "path": "v2-models",
+    "version": "opencode v2.2.5",
+    "os": "darwin",
+    "arch": "arm64",
+    "captured": "2026-10-31T11:17:58Z"
+  },
+  {
+    "label": "v2-models-verbose",
+    "scenario": "models",
+    "path": "v2-models-verbose",
+    "version": "opencode v2.2.5",
+    "os": "darwin",
+    "arch": "arm64",
+    "captured": "2026-10-31T11:27:36Z"
+  },
+  {
+    "label": "v2-npm-opencode2-handshake",
+    "scenario": "handshake",
+    "path": "v2-npm-opencode2-handshake",
+    "version": "opencode v2.2.5",
+    "os": "darwin",
+    "arch": "arm64",
+    "captured": "2026-10-31T11:46:38Z"
+  },
+  {
+    "label": "v2-free-limit-error",
+    "scenario": "prompt",
+    "path": "v2-free-limit-error",
+    "version": "opencode v2.2.5",
+    "os": "darwin",
+    "arch": "arm64",
+    "captured": "2026-10-31T11:48:17Z"
+  },
+  {
+    "label": "v2-permission-run1",
+    "scenario": "prompt",
+    "path": "v2-permission-run1",
+    "version": "opencode v2.2.5",
+    "os": "darwin",
+    "arch": "arm64",
+    "captured": "2026-10-31T11:47:56Z"
+  },
+  {
+    "label": "v2-permissions-config",
+    "scenario": "debug-config",
+    "path": "v2-permissions-config",
+    "version": "opencode v2.2.5",
+    "os": "darwin",
+    "arch": "arm64",
+    "captured": "2026-10-31T11:27:17Z"
+  },
+  {
+    "label": "v2-prompt",
+    "scenario": "prompt",
+    "path": "v2-prompt",
+    "version": "opencode v2.2.5",
+    "os": "darwin",
+    "arch": "arm64",
+    "captured": "2026-10-31T11:19:49Z"
+  },
+  {
+    "label": "v2-proxy",
+    "scenario": "prompt",
+    "path": "v2-proxy",
+    "version": "opencode v2.2.5",
+    "os": "darwin",
+    "arch": "arm64",
+    "captured": "2026-10-31T11:24:48Z"
+  },
+  {
+    "label": "v2-resume",
+    "scenario": "resume",
+    "path": "v2-resume",
+    "version": "opencode v2.2.5",
+    "os": "darwin",
+    "arch": "arm64",
+    "captured": "2026-10-31T11:20:05Z"
+  },
+  {
+    "label": "v2-session-new",
+    "scenario": "session-new",
+    "path": "v2-session-new",
+    "version": "opencode v2.2.5",
+    "os": "darwin",
+    "arch": "arm64",
+    "captured": "2026-10-31T11:19:33Z"
+  },
+  {
+    "label": "v2-skills",
+    "scenario": "prompt",
+    "path": "v2-skills",
+    "version": "opencode v2.2.5",
+    "os": "darwin",
+    "arch": "arm64",
+    "captured": "2026-10-31T11:22:50Z"
+  },
+  {
+    "label": "v2-skills-no-claude",
+    "scenario": "prompt",
+    "path": "v2-skills-no-claude",
+    "version": "opencode v2.2.5",
+    "os": "darwin",
+    "arch": "arm64",
+    "captured": "2026-10-31T11:23:18Z"
+  },
+  {
+    "label": "v2-skills-no-claude-code",
+    "scenario": "prompt",
+    "path": "v2-skills-no-claude-code",
+    "version": "opencode v2.2.5",
+    "os": "darwin",
+    "arch": "arm64",
+    "captured": "2026-10-31T11:29:20Z"
+  },
+  {
+    "label": "v2-skills-no-external",
+    "scenario": "prompt",
+    "path": "v2-skills-no-external",
+    "version": "opencode v2.2.5",
+    "os": "darwin",
+    "arch": "arm64",
+    "captured": "2026-10-31T11:28:55Z"
+  },
+  {
+    "label": "v2-subagent",
+    "scenario": "prompt",
+    "path": "v2-subagent",
+    "version": "opencode v2.2.5",
+    "os": "darwin",
+    "arch": "arm64",
+    "captured": "2026-10-31T11:21:46Z"
+  },
+  {
+    "label": "v2-version",
+    "scenario": "version",
+    "path": "v2-version",
+    "version": "opencode v2.2.5",
+    "os": "darwin",
+    "arch": "arm64",
+    "captured": "2026-10-31T11:17:57Z"
+  }
+]

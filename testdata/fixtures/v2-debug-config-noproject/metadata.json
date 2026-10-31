@@ -1,0 +1,14 @@
+{
+  "scenario": "debug-config",
+  "label": "v2-debug-config-noproject",
+  "bin": "/opt/homebrew/bin/opencode",
+  "version": "opencode v2.2.5",
+  "os": "darwin",
+  "arch": "arm64",
+  "captured": "2026-10-31T11:21:08Z",
+  "env": {
+    "OPENCODE_DISABLE_PROJECT_CONFIG": "1",
+    "OPENCODE_SESSION_ID": "ses_e6e6692fbffemvUc0uziLikyZp",
+    "OPENCODE_TERMINAL": "1"
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "scenario": "prompt",
+  "label": "v2-instructions",
+  "bin": "/opt/homebrew/bin/opencode",
+  "version": "opencode v2.2.5",
+  "os": "darwin",
+  "arch": "arm64",
+  "captured": "2026-10-31T11:27:12Z",
+  "env": {
+    "NO_PROXY": "127.0.0.1,localhost,::1",
+    "OPENCODE_CONFIG_CONTENT": "{\"instructions\":[\"INSTR.md\"]}"
+  }
+}

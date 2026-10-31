@@ -1,0 +1,8 @@
+command: opencode --version
+exit: 0
+
+--- stdout ---
+opencode v2.2.5
+
+--- stderr ---
+
