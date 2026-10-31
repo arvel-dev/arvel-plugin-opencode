@@ -1,0 +1,14 @@
+command: opencode auth list
+exit: 0
+
+--- stdout ---
+┌  Credentials [90m/tmp/oc-v1/env/data/opencode/auth.json
+│
+●  DeepSeek [90mapi
+│
+└  1 credentials
+
+
+--- stderr ---
+[0m
+

@@ -1,0 +1,13 @@
+{
+  "scenario": "debug-config",
+  "label": "v2-permissions-config",
+  "bin": "/opt/homebrew/bin/opencode",
+  "version": "opencode v2.2.5",
+  "os": "darwin",
+  "arch": "arm64",
+  "captured": "2026-10-31T11:27:17Z",
+  "env": {
+    "NO_PROXY": "127.0.0.1,localhost,::1",
+    "OPENCODE_CONFIG_CONTENT": "{\"permission\":{\"*\":\"ask\",\"bash\":{\"*\":\"ask\",\"git *\":\"allow\",\"rm *\":\"deny\"},\"edit\":\"deny\"},\"instructions\":[\"AGENTS.md\"]}"
+  }
+}

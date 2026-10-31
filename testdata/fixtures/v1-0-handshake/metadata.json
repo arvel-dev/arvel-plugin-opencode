@@ -1,0 +1,16 @@
+{
+  "scenario": "handshake",
+  "label": "v1-0-handshake",
+  "bin": "/tmp/opencode-v1-0/node_modules/.bin/opencode",
+  "version": "1.0.0",
+  "os": "darwin",
+  "arch": "arm64",
+  "captured": "2026-10-31T11:37:33Z",
+  "env": {
+    "NO_PROXY": "127.0.0.1,localhost,::1",
+    "XDG_CACHE_HOME": "/tmp/oc-v1-0/env/cache",
+    "XDG_CONFIG_HOME": "/tmp/oc-v1-0/env/config",
+    "XDG_DATA_HOME": "/tmp/oc-v1-0/env/data",
+    "XDG_STATE_HOME": "/tmp/oc-v1-0/env/state"
+  }
+}

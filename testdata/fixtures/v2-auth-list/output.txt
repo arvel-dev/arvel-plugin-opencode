@@ -1,0 +1,8 @@
+command: opencode auth list
+exit: 0
+
+--- stdout ---
+DeepSeek  DeepSeek                    stored
+
+--- stderr ---
+

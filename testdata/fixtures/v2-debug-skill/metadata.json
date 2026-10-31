@@ -1,0 +1,12 @@
+{
+  "scenario": "debug-skill",
+  "label": "v2-debug-skill",
+  "bin": "/opt/homebrew/bin/opencode",
+  "version": "opencode v2.2.5",
+  "os": "darwin",
+  "arch": "arm64",
+  "captured": "2026-10-31T11:28:43Z",
+  "env": {
+    "NO_PROXY": "127.0.0.1,localhost,::1"
+  }
+}

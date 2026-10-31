@@ -1,0 +1,12 @@
+command: opencode auth list
+exit: 0
+
+--- stdout ---
+┌  Credentials [90m/tmp/oc-v1/env/data/opencode/auth.json
+│
+└  0 credentials
+
+
+--- stderr ---
+[0m
+

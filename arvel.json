@@ -1,0 +1,120 @@
+{
+  "$schema": "https://raw.githubusercontent.com/arvel-dev/arvel-sdk/v0.2.1/schema/arvel.schema.json",
+  "id": "opencode",
+  "name": "OpenCode",
+  "type": "provider",
+  "version": "0.1.0",
+  "pluginApi": "1",
+  "description": "Any model OpenCode can reach \u2014 through OpenCode's own providers and keys.",
+  "homepage": "https://github.com/arvel-dev/arvel-plugin-opencode",
+  "license": "Apache-2.0",
+  "entry": {
+    "darwin-arm64": {
+      "asset": "arvel-plugin-opencode_darwin_arm64.tar.gz",
+      "bin": "arvel-plugin-opencode"
+    },
+    "darwin-amd64": {
+      "asset": "arvel-plugin-opencode_darwin_amd64.tar.gz",
+      "bin": "arvel-plugin-opencode"
+    },
+    "linux-amd64": {
+      "asset": "arvel-plugin-opencode_linux_amd64.tar.gz",
+      "bin": "arvel-plugin-opencode"
+    },
+    "linux-arm64": {
+      "asset": "arvel-plugin-opencode_linux_arm64.tar.gz",
+      "bin": "arvel-plugin-opencode"
+    },
+    "windows-amd64": {
+      "asset": "arvel-plugin-opencode_windows_amd64.zip",
+      "bin": "arvel-plugin-opencode.exe"
+    },
+    "windows-arm64": {
+      "asset": "arvel-plugin-opencode_windows_arm64.zip",
+      "bin": "arvel-plugin-opencode.exe"
+    }
+  },
+  "checksums": "checksums.txt",
+  "requires": [
+    {
+      "binary": "opencode",
+      "minVersion": "1.3.16",
+      "versionArgs": [
+        "--version"
+      ],
+      "install": {
+        "darwin": "curl -fsSL https://opencode.ai/v2/install | bash",
+        "linux": "curl -fsSL https://opencode.ai/v2/install | bash",
+        "windows": "https://opencode.ai/update/api/latest/cli/opencode/opencode-windows-x64.zip",
+        "docs": "https://opencode.ai/v2/docs/"
+      }
+    }
+  ],
+  "permissions": {
+    "spawn": [
+      "opencode"
+    ],
+    "network": [],
+    "files": "session-cwd"
+  },
+  "sandbox": {
+    "vendorPaths": {
+      "read": [
+        "~/.config/opencode",
+        "~/.local/share/opencode",
+        "~/.local/state/opencode",
+        "~/.cache/opencode"
+      ],
+      "write": [
+        "~/.local/share/opencode",
+        "~/.local/state/opencode",
+        "~/.cache/opencode"
+      ]
+    },
+    "vendorHosts": [
+      "opencode.ai",
+      "*.opencode.ai",
+      "openrouter.ai",
+      "api.moonshot.ai",
+      "api.deepseek.com",
+      "api.z.ai",
+      "api.groq.com"
+    ],
+    "macosKeychain": false
+  },
+  "connections": [
+    {
+      "kind": "opencode",
+      "label": "OpenCode",
+      "billing": "mixed",
+      "description": "Uses the providers and keys configured in OpenCode on this machine.",
+      "config": {
+        "type": "object",
+        "properties": {
+          "opencodePath": {
+            "type": "string",
+            "title": "Path to opencode (leave empty to auto-detect)"
+          },
+          "agent": {
+            "type": "string",
+            "default": "build",
+            "title": "OpenCode agent to use for work"
+          },
+          "loadProjectConfig": {
+            "type": "boolean",
+            "default": false,
+            "title": "Load the project's own opencode.json (agents, MCP, permissions)"
+          }
+        }
+      },
+      "secrets": []
+    }
+  ],
+  "capabilities": {
+    "usage": "spend",
+    "subagents": true,
+    "resume": true,
+    "modelSwitch": "live",
+    "effortSwitch": "live"
+  }
+}

@@ -1,0 +1,9 @@
+{
+  "scenario": "version",
+  "label": "v2-version",
+  "bin": "/opt/homebrew/bin/opencode",
+  "version": "opencode v2.2.5",
+  "os": "darwin",
+  "arch": "arm64",
+  "captured": "2026-10-31T11:17:57Z"
+}

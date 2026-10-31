@@ -56,7 +56,7 @@ The plugin also checks each permission request itself. "No" answers right away, 
 The project's own `opencode.json` (agents, MCP, permissions) is **not** loaded unless you enable *Load the project's own opencode.json*.
 
 Limitations:
-- OpenCode v1 has no read permission, so *Read files: No* cannot be enforced there.
+- OpenCode v1 takes rules as an untyped `permission` object. The `read` key is accepted (confirmed in bootstrap); end-to-end enforcement of *Read files: No* is covered by the permission conformance tests.
 - Shell commands like `curl` count as commands, not as network use.
 
 ## Skills and MCP servers

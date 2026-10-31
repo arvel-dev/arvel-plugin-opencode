@@ -1,0 +1,12 @@
+{
+  "scenario": "models",
+  "label": "v1-shared-datadir",
+  "bin": "/tmp/opencode-v1/node_modules/.bin/opencode",
+  "version": "1.19.5",
+  "os": "darwin",
+  "arch": "arm64",
+  "captured": "2026-10-31T11:46:08Z",
+  "env": {
+    "NO_PROXY": "127.0.0.1,localhost,::1"
+  }
+}

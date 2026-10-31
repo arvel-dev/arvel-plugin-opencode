@@ -1,0 +1,14 @@
+{
+  "scenario": "session-new",
+  "label": "v2-inline-config",
+  "bin": "/opt/homebrew/bin/opencode",
+  "version": "opencode v2.2.5",
+  "os": "darwin",
+  "arch": "arm64",
+  "captured": "2026-10-31T11:20:55Z",
+  "env": {
+    "OPENCODE_CONFIG_CONTENT": "{\"model\":{\"providerID\":\"opencode\",\"model\":\"mimo-v2.6-flash-free\"}}",
+    "OPENCODE_SESSION_ID": "ses_e6e6692fbffemvUc0uziLikyZp",
+    "OPENCODE_TERMINAL": "1"
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "scenario": "session-new",
+  "label": "v1-inline-config",
+  "bin": "/tmp/opencode-v1/node_modules/.bin/opencode",
+  "version": "1.19.5",
+  "os": "darwin",
+  "arch": "arm64",
+  "captured": "2026-10-31T11:35:27Z",
+  "env": {
+    "NO_PROXY": "127.0.0.1,localhost,::1",
+    "OPENCODE_CONFIG_CONTENT": "{\"model\":{\"providerID\":\"opencode\",\"model\":\"mimo-v2.6-flash-free\"}}",
+    "XDG_CACHE_HOME": "/tmp/oc-v1/env/cache",
+    "XDG_CONFIG_HOME": "/tmp/oc-v1/env/config",
+    "XDG_DATA_HOME": "/tmp/oc-v1/env/data",
+    "XDG_STATE_HOME": "/tmp/oc-v1/env/state"
+  }
+}
