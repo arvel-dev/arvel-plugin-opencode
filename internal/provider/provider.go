@@ -49,6 +49,7 @@ type Provider struct {
 	sandbox           *protocol.SandboxInfo
 	loadProjectConfig bool
 	agent             string
+	dataDir           string // plugin data dir (per-session artifacts, O3)
 
 	detMu sync.Mutex // guards info (detection cache)
 	catMu sync.Mutex // guards cache (model catalogue)
@@ -86,6 +87,7 @@ func (p *Provider) Initialize(_ context.Context, meta protocol.InitMeta) (plugin
 	p.mu.Lock()
 	defer p.mu.Unlock()
 	p.sandbox = meta.Sandbox
+	p.dataDir = meta.DataDir
 	if s, ok := meta.Connection.Config["opencodePath"].(string); ok {
 		p.cfgPath = s
 	}
@@ -104,7 +106,14 @@ func (p *Provider) Initialize(_ context.Context, meta protocol.InitMeta) (plugin
 	} else {
 		p.bin = bin
 	}
-	return plugin.Features{LoadSession: true}, nil
+	return plugin.Features{
+		LoadSession:      true,
+		Skills:           &protocol.SkillsInfo{ProjectDirs: []string{".opencode/skills"}, Spec: "agentskills/1"},
+		InstructionFiles: []string{"AGENTS.md"},
+		Subagents:        true,
+		MCPHTTP:          true,
+		MCPSSE:           false,
+	}, nil
 }
 
 // Status reports install/version/login readiness (SPEC.md §9.1).
@@ -200,6 +209,7 @@ func (p *Provider) proxyConfig(ctx context.Context) (proxy.Config, error) {
 	sandbox := p.sandbox
 	lpc := p.loadProjectConfig
 	agent := p.agent
+	dataDir := p.dataDir
 	log := p.log
 	rd := p.rd
 	p.mu.RUnlock()
@@ -220,6 +230,7 @@ func (p *Provider) proxyConfig(ctx context.Context) (proxy.Config, error) {
 		Flavour:           info.Flavour(),
 		Agent:             agent,
 		LoadProjectConfig: lpc,
+		DataDir:           dataDir,
 		Proxy:             proxyStr,
 		Log:               log,
 		Redactor:          rd,

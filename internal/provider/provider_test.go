@@ -300,13 +300,26 @@ func TestInitialize_Features(t *testing.T) {
 
 	p := New()
 	f, err := p.Initialize(context.Background(), protocol.InitMeta{
+		DataDir:    "/data/arvel",
 		Connection: protocol.ConnectionInfo{Config: map[string]any{"opencodePath": "/nonexistent/opencode"}},
 	})
 	if err != nil {
 		t.Fatalf("Initialize: %v", err)
 	}
 	if !f.LoadSession {
-		t.Fatal("Features.LoadSession must be true in O2")
+		t.Fatal("Features.LoadSession must be true")
+	}
+	if f.Skills == nil || len(f.Skills.ProjectDirs) != 1 || f.Skills.ProjectDirs[0] != ".opencode/skills" || f.Skills.Spec != "agentskills/1" {
+		t.Fatalf("Features.Skills = %+v", f.Skills)
+	}
+	if len(f.InstructionFiles) != 1 || f.InstructionFiles[0] != "AGENTS.md" {
+		t.Fatalf("Features.InstructionFiles = %v", f.InstructionFiles)
+	}
+	if !f.Subagents || !f.MCPHTTP || f.MCPSSE {
+		t.Fatalf("Features subagents/mcp = %+v", f)
+	}
+	if p.dataDir != "/data/arvel" {
+		t.Fatalf("dataDir = %q", p.dataDir)
 	}
 }
 

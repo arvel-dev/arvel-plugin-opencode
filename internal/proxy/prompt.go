@@ -33,7 +33,7 @@ func (s *Session) Prompt(ctx context.Context, blocks []acp.ContentBlock, out plu
 		s.armIdle()
 	}()
 
-	sink := &outputSink{out: out, log: s.cfg.Log, rd: s.cfg.Redactor}
+	sink := &outputSink{out: out, log: s.cfg.Log, rd: s.cfg.Redactor, s: s}
 	res, err := c.Prompt(ctx, acp.SessionId(s.id), blocks, sink)
 	if err != nil {
 		return plugin.TurnResult{}, fmt.Errorf("proxy: prompt: %w", err)
@@ -46,6 +46,7 @@ type outputSink struct {
 	out plugin.Output
 	log *slog.Logger
 	rd  *redact.Redactor
+	s   *Session // the session whose policy the evaluator uses
 }
 
 func (o *outputSink) Update(n acp.SessionNotification) {

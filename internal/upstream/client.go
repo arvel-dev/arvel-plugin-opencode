@@ -12,6 +12,7 @@ import (
 
 	acp "github.com/coder/acp-go-sdk"
 
+	"github.com/arvel-dev/arvel-plugin-opencode/internal/detect"
 	"github.com/arvel-dev/arvel-sdk/jsonrpc"
 	"github.com/arvel-dev/arvel-sdk/procx"
 	"github.com/arvel-dev/arvel-sdk/redact"
@@ -19,9 +20,11 @@ import (
 
 // Config selects the child and its environment.
 type Config struct {
-	Bin               string // absolute opencode path
-	CWD               string // session working directory
+	Bin               string         // absolute opencode path
+	CWD               string         // session working directory
+	Flavour           detect.Flavour // v1|v2: selects skill-exclusion env vars
 	LoadProjectConfig bool
+	InlineConfig      string // OPENCODE_CONFIG_CONTENT JSON ("" = unset)
 	Proxy             string // sandbox.proxy ("" = none)
 	Log               *slog.Logger
 	Redactor          *redact.Redactor // redacts external text in debug logs
@@ -55,7 +58,7 @@ func Start(ctx context.Context, cfg Config) (*Client, error) {
 		Path:   cfg.Bin,
 		Args:   []string{"acp"},
 		Dir:    cfg.CWD,
-		Env:    Env(cfg.LoadProjectConfig, cfg.Proxy),
+		Env:    Env(cfg),
 		Stdin:  inR,
 		Stdout: outW,
 		Stderr: vendorStderr(cfg.Log, cfg.Redactor),

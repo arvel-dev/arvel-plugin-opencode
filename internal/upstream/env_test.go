@@ -5,6 +5,8 @@ package upstream
 import (
 	"strings"
 	"testing"
+
+	"github.com/arvel-dev/arvel-plugin-opencode/internal/detect"
 )
 
 func hasEnv(env []string, key string) bool {
@@ -28,7 +30,7 @@ func envValue(env []string, key string) string {
 }
 
 func TestEnv_Defaults(t *testing.T) {
-	env := Env(false, "")
+	env := Env(Config{})
 	if !hasEnv(env, "TERM") || envValue(env, "TERM") != "dumb" {
 		t.Fatalf("want TERM=dumb, got %q", envValue(env, "TERM"))
 	}
@@ -38,17 +40,17 @@ func TestEnv_Defaults(t *testing.T) {
 }
 
 func TestEnv_DisableProjectConfig(t *testing.T) {
-	if !hasEnv(Env(false, ""), "OPENCODE_DISABLE_PROJECT_CONFIG") {
+	if !hasEnv(Env(Config{LoadProjectConfig: false}), "OPENCODE_DISABLE_PROJECT_CONFIG") {
 		t.Fatal("false must set OPENCODE_DISABLE_PROJECT_CONFIG")
 	}
-	if hasEnv(Env(true, ""), "OPENCODE_DISABLE_PROJECT_CONFIG") {
+	if hasEnv(Env(Config{LoadProjectConfig: true}), "OPENCODE_DISABLE_PROJECT_CONFIG") {
 		t.Fatal("true must not set OPENCODE_DISABLE_PROJECT_CONFIG")
 	}
 }
 
 func TestEnv_Proxy(t *testing.T) {
 	const proxy = "http://127.0.0.1:41234"
-	env := Env(false, proxy)
+	env := Env(Config{Proxy: proxy})
 	for _, k := range []string{"HTTPS_PROXY", "HTTP_PROXY", "ALL_PROXY"} {
 		if got := envValue(env, k); got != proxy {
 			t.Fatalf("%s = %q, want %q", k, got, proxy)
@@ -57,7 +59,7 @@ func TestEnv_Proxy(t *testing.T) {
 	if got := envValue(env, "NO_PROXY"); got != "localhost,127.0.0.1" {
 		t.Fatalf("NO_PROXY = %q", got)
 	}
-	if hasEnv(Env(false, ""), "HTTPS_PROXY") {
+	if hasEnv(Env(Config{}), "HTTPS_PROXY") {
 		t.Fatal("empty proxy must not set HTTPS_PROXY")
 	}
 }
@@ -67,10 +69,38 @@ func TestEnv_NeverPass(t *testing.T) {
 	t.Setenv("GH_TOKEN", "x")
 	t.Setenv("GITHUB_TOKEN", "y")
 	t.Setenv("GIT_ASKPASS", "z")
-	env := Env(false, "")
+	env := Env(Config{})
 	for _, k := range []string{"SSH_AUTH_SOCK", "GH_TOKEN", "GITHUB_TOKEN", "GIT_ASKPASS"} {
 		if hasEnv(env, k) {
 			t.Fatalf("%s leaked into the child env", k)
 		}
+	}
+}
+
+func TestEnv_InlineConfigAndSkillExclusion(t *testing.T) {
+	v1 := Env(Config{Flavour: detect.V1, LoadProjectConfig: false, InlineConfig: "{}"})
+	if got := envValue(v1, "OPENCODE_CONFIG_CONTENT"); got != "{}" {
+		t.Fatalf("OPENCODE_CONFIG_CONTENT = %q, want {}", got)
+	}
+	if !hasEnv(v1, "OPENCODE_DISABLE_PROJECT_CONFIG") {
+		t.Fatal("v1: want OPENCODE_DISABLE_PROJECT_CONFIG")
+	}
+	if !hasEnv(v1, "OPENCODE_DISABLE_EXTERNAL_SKILLS") {
+		t.Fatal("v1: want OPENCODE_DISABLE_EXTERNAL_SKILLS")
+	}
+	if hasEnv(v1, "OPENCODE_DISABLE_CLAUDE_CODE_SKILLS") {
+		t.Fatal("v1: must not set OPENCODE_DISABLE_CLAUDE_CODE_SKILLS")
+	}
+
+	v2 := Env(Config{Flavour: detect.V2, InlineConfig: "{}"})
+	if !hasEnv(v2, "OPENCODE_DISABLE_CLAUDE_CODE_SKILLS") {
+		t.Fatal("v2: want OPENCODE_DISABLE_CLAUDE_CODE_SKILLS")
+	}
+	if hasEnv(v2, "OPENCODE_DISABLE_EXTERNAL_SKILLS") {
+		t.Fatal("v2: must not set OPENCODE_DISABLE_EXTERNAL_SKILLS")
+	}
+
+	if hasEnv(Env(Config{Flavour: detect.V1}), "OPENCODE_CONFIG_CONTENT") {
+		t.Fatal("empty inline config must not set OPENCODE_CONFIG_CONTENT")
 	}
 }
