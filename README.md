@@ -38,7 +38,9 @@ OpenCode keeps its own provider keys. To add one, open **Arvel → Settings → 
 
 ## Models and reasoning effort
 
-Every `provider/model` that OpenCode offers appears in Arvel, for example `Kimi K2.5 · Moonshot`. If a model has reasoning **variants**, Arvel shows them as effort levels: Low, Medium, High, Max. Auto uses the model's default.
+Every `provider/model` that OpenCode offers appears in Arvel, for example `Kimi K2.5 · Moonshot`. If a model has reasoning **variants**, Arvel shows them as effort levels: `low`, `medium`, `high`, `xhigh`, `max`; OpenCode's `none` and `minimal` variants are not offered, and Auto uses the model's default.
+
+The catalogue is cached for six hours. Per-model billing is `unknown` except for a small table of known API-billed providers (`deepseek`, `openrouter`, `moonshot`, `zai`, `groq`), defined in `internal/models/models.go` (`apiProviders`).
 
 ## Permissions and safety
 
