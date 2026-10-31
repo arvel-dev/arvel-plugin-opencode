@@ -5,6 +5,8 @@ package provider
 import (
 	"context"
 	"errors"
+	"io"
+	"log/slog"
 	"sync"
 	"sync/atomic"
 	"testing"
@@ -333,6 +335,115 @@ func TestNewSession_NoBinary(t *testing.T) {
 	}
 	if arvel, ok := rpcErr.Arvel(); !ok || arvel.Code != protocol.ErrBinaryMissing {
 		t.Fatalf("arvel error = %+v, want binary_missing", arvel)
+	}
+}
+
+// fakeHost records usage updates pushed by the provider.
+type fakeHost struct {
+	mu    sync.Mutex
+	usage []protocol.Usage
+}
+
+func (h *fakeHost) StatusChanged(protocol.Status) {}
+
+func (h *fakeHost) UsageUpdated(u protocol.Usage) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	h.usage = append(h.usage, u)
+}
+
+func (h *fakeHost) Logger() *slog.Logger {
+	return slog.New(slog.NewTextHandler(io.Discard, nil))
+}
+
+func (h *fakeHost) usageCount() int {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	return len(h.usage)
+}
+
+func TestUsage_StartsUnknown(t *testing.T) {
+	t.Parallel()
+
+	p := New()
+	u, err := p.Usage(context.Background())
+	if err != nil {
+		t.Fatalf("Usage: %v", err)
+	}
+	if err := u.Validate(); err != nil {
+		t.Fatalf("usage does not validate: %v", err)
+	}
+	if u.Source != protocol.UsageSourceUnknown || u.Status != protocol.UsageStatusOK || u.Spend != nil {
+		t.Fatalf("usage = %+v, want unknown/ok with no spend", u)
+	}
+}
+
+func TestUsage_AccumulatesViaSink(t *testing.T) {
+	t.Parallel()
+
+	p := New()
+	if _, err := p.Initialize(context.Background(), protocol.InitMeta{DataDir: t.TempDir()}); err != nil {
+		t.Fatalf("Initialize: %v", err)
+	}
+	sink := p.usageSink()
+	if sink == nil {
+		t.Fatal("usageSink is nil after Initialize")
+	}
+	sink.Add(protocol.TurnUsage{CostUSD: 1.5, CostSource: protocol.UsageSourceEstimated}, "USD")
+
+	u, err := p.Usage(context.Background())
+	if err != nil {
+		t.Fatalf("Usage: %v", err)
+	}
+	if err := u.Validate(); err != nil {
+		t.Fatalf("usage does not validate: %v", err)
+	}
+	if u.Source != protocol.UsageSourceEstimated || u.Spend == nil || u.Spend.SinceStart != 1.5 {
+		t.Fatalf("usage = %+v, want estimated spend 1.5", u)
+	}
+}
+
+func TestUsage_PushesUsageUpdated(t *testing.T) {
+	t.Parallel()
+
+	h := &fakeHost{}
+	p := New()
+	p.SetHost(h)
+	if _, err := p.Initialize(context.Background(), protocol.InitMeta{DataDir: t.TempDir()}); err != nil {
+		t.Fatalf("Initialize: %v", err)
+	}
+	p.usageSink().Add(protocol.TurnUsage{CostUSD: 0.25, CostSource: protocol.UsageSourceEstimated}, "USD")
+	if got := h.usageCount(); got != 1 {
+		t.Fatalf("usage updates = %d, want 1", got)
+	}
+}
+
+func TestUsage_RateLimitedViaSink(t *testing.T) {
+	t.Parallel()
+
+	p := New()
+	if _, err := p.Initialize(context.Background(), protocol.InitMeta{DataDir: t.TempDir()}); err != nil {
+		t.Fatalf("Initialize: %v", err)
+	}
+	p.usageSink().RateLimited()
+	u, err := p.Usage(context.Background())
+	if err != nil {
+		t.Fatalf("Usage: %v", err)
+	}
+	if u.Status != protocol.UsageStatusExhausted {
+		t.Fatalf("status = %q, want exhausted", u.Status)
+	}
+}
+
+func TestUsageWithoutInitialize(t *testing.T) {
+	t.Parallel()
+
+	p := New()
+	if sink := p.usageSink(); sink != nil {
+		t.Fatalf("usageSink = %+v, want nil before Initialize", sink)
+	}
+	if _, err := p.Usage(context.Background()); err != nil {
+		t.Fatalf("Usage: %v", err)
 	}
 }
 

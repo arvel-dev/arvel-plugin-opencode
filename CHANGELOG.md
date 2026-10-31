@@ -14,3 +14,5 @@ All notable changes to this project are documented here. The format follows
 - Apply the Arvel permission policy to each session: a baseline written into OpenCode's inline config plus a second evaluator that denies or allows without asking, and a session-local "always allow" that is never forwarded to OpenCode's own persistent rules.
 - Deliver per-session instructions (role instructions plus reply language) and pass MCP servers through to OpenCode, skipping SSE servers with a warning.
 - Deliver the session's Arvel skills into `.opencode/skills` before OpenCode starts, and add read-only `_arvel/discover` for the MCP servers and skills configured in OpenCode, with secret values redacted.
+- Aggregate best-effort spend from each turn into `_arvel/usage` with a per-day ledger, and report per-turn tokens and estimated cost in every `session/prompt` result.
+- Map upstream OpenCode failures to typed errors: usage limits to `rate_limited`, unknown models to `model_unavailable`, auth failures to `auth_required`, and everything else to `provider_error`.

@@ -30,6 +30,15 @@ var cancelAfter = 10 * time.Second
 // errClosed marks operations on a session whose Close already ran.
 var errClosed = errors.New("proxy: session is closed")
 
+// UsageTracker receives per-turn usage and limit events from a session so the
+// provider can answer _arvel/usage. Implemented by the provider; nil disables
+// reporting.
+type UsageTracker interface {
+	Add(tu protocol.TurnUsage, currency string)
+	RateLimited()
+	MarkOK()
+}
+
 // Config carries everything the bridge needs to start a child.
 type Config struct {
 	Bin               string
@@ -40,6 +49,7 @@ type Config struct {
 	Proxy             string // sandbox.proxy ("" = none)
 	Log               *slog.Logger
 	Redactor          *redact.Redactor
+	Tracker           UsageTracker // usage reporter; nil disables reporting (O4)
 }
 
 // redact runs s through the redactor when one is configured.
@@ -79,6 +89,12 @@ type Session struct {
 	cancelTimer *time.Timer
 	cancelling  bool
 	turning     bool
+
+	// per-child usage baseline for per-turn deltas (guarded by mu)
+	lastInput, lastOutput, lastCacheRead int64
+	lastCostAmount                       float64
+	lastCostCurrency                     string
+	hasCost                              bool
 }
 
 var _ plugin.Session = (*Session)(nil)

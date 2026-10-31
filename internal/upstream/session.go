@@ -61,7 +61,7 @@ func (c *Client) NewSession(ctx context.Context, cwd string, mcp []acp.McpServer
 	}
 	var res acp.NewSessionResponse
 	err := c.peer.Call(ctx, "session/new", acp.NewSessionRequest{Cwd: cwd, McpServers: mcp}, &res)
-	return res, err
+	return res, MapError(err)
 }
 
 // LoadSession resumes the child's session.
@@ -71,7 +71,7 @@ func (c *Client) LoadSession(ctx context.Context, id acp.SessionId, cwd string, 
 	}
 	var res acp.LoadSessionResponse
 	err := c.peer.Call(ctx, "session/load", acp.LoadSessionRequest{SessionId: id, Cwd: cwd, McpServers: mcp}, &res)
-	return res, err
+	return res, MapError(err)
 }
 
 // Prompt runs one turn. sink is installed for the duration of the call.
@@ -86,7 +86,7 @@ func (c *Client) Prompt(ctx context.Context, id acp.SessionId, blocks []acp.Cont
 	}()
 	var res acp.PromptResponse
 	err := c.peer.Call(ctx, "session/prompt", acp.PromptRequest{SessionId: id, Prompt: blocks}, &res)
-	return res, err
+	return res, MapError(err)
 }
 
 // SetOption changes a config option.
@@ -99,7 +99,7 @@ func (c *Client) SetOption(ctx context.Context, id acp.SessionId, configID, valu
 			Value:     acp.SessionConfigValueId(value),
 		},
 	}, &res)
-	return res.ConfigOptions, err
+	return res.ConfigOptions, MapError(err)
 }
 
 // Cancel sends the session/cancel notification (graceful).

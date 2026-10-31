@@ -15,6 +15,7 @@ import (
 	"github.com/arvel-dev/arvel-plugin-opencode/internal/detect"
 	"github.com/arvel-dev/arvel-plugin-opencode/internal/models"
 	"github.com/arvel-dev/arvel-plugin-opencode/internal/proxy"
+	"github.com/arvel-dev/arvel-plugin-opencode/internal/usage"
 	"github.com/arvel-dev/arvel-sdk/plugin"
 	"github.com/arvel-dev/arvel-sdk/protocol"
 	"github.com/arvel-dev/arvel-sdk/redact"
@@ -50,6 +51,8 @@ type Provider struct {
 	loadProjectConfig bool
 	agent             string
 	dataDir           string // plugin data dir (per-session artifacts, O3)
+
+	tracker *usage.Tracker // O4: aggregated spend for _arvel/usage
 
 	detMu sync.Mutex // guards info (detection cache)
 	catMu sync.Mutex // guards cache (model catalogue)
@@ -88,6 +91,7 @@ func (p *Provider) Initialize(_ context.Context, meta protocol.InitMeta) (plugin
 	defer p.mu.Unlock()
 	p.sandbox = meta.Sandbox
 	p.dataDir = meta.DataDir
+	p.tracker = usage.New(meta.DataDir)
 	if s, ok := meta.Connection.Config["opencodePath"].(string); ok {
 		p.cfgPath = s
 	}
@@ -234,6 +238,7 @@ func (p *Provider) proxyConfig(ctx context.Context) (proxy.Config, error) {
 		Proxy:             proxyStr,
 		Log:               log,
 		Redactor:          rd,
+		Tracker:           p.usageSink(),
 	}, nil
 }
 
@@ -336,9 +341,16 @@ func readyStatus(bin *protocol.BinaryInfo, providers int) protocol.Status {
 	}
 }
 
-// Usage reports unknown usage: OpenCode spend tracking arrives in O4.
+// Usage reports the aggregated spend from all sessions so far (SPEC §8,
+// PROTOCOL §6.3). Before the first turn it is "unknown"; afterwards "estimated".
 func (p *Provider) Usage(context.Context) (protocol.Usage, error) {
-	return protocol.Usage{Source: protocol.UsageSourceUnknown, Status: protocol.UsageStatusOK}, nil
+	p.mu.RLock()
+	t := p.tracker
+	p.mu.RUnlock()
+	if t == nil {
+		return protocol.Usage{Source: protocol.UsageSourceUnknown, Status: protocol.UsageStatusOK}, nil
+	}
+	return t.Snapshot(), nil
 }
 
 // Action runs login and install-help (SPEC.md §9).
@@ -383,4 +395,60 @@ func (p *Provider) warn(msg string, err error) {
 		return
 	}
 	p.log.Warn(msg)
+}
+
+// usageSink adapts the proxy.UsageTracker interface to the *usage.Tracker plus
+// the host's _arvel/usage_updated push (the SDK throttles it to 5 s).
+type usageSink struct {
+	t *usage.Tracker
+	p *Provider
+}
+
+func (s usageSink) Add(tu protocol.TurnUsage, currency string) {
+	if s.t == nil {
+		return
+	}
+	if err := s.t.Add(tu, currency); err != nil && s.p.log != nil {
+		s.p.log.Warn("cannot persist usage ledger", "err", err.Error())
+	}
+	s.p.pushUsage()
+}
+
+func (s usageSink) RateLimited() {
+	if s.t == nil {
+		return
+	}
+	s.t.MarkRateLimited()
+	s.p.pushUsage()
+}
+
+func (s usageSink) MarkOK() {
+	if s.t == nil {
+		return
+	}
+	s.t.MarkOK()
+	s.p.pushUsage()
+}
+
+// pushUsage sends _arvel/usage_updated with the current snapshot, if the host
+// is attached.
+func (p *Provider) pushUsage() {
+	p.mu.RLock()
+	h, t := p.host, p.tracker
+	p.mu.RUnlock()
+	if h == nil || t == nil {
+		return
+	}
+	h.UsageUpdated(t.Snapshot())
+}
+
+// usageSink returns the adapter for a new session, or nil when the tracker is
+// not yet initialized.
+func (p *Provider) usageSink() proxy.UsageTracker {
+	p.mu.RLock()
+	defer p.mu.RUnlock()
+	if p.tracker == nil {
+		return nil
+	}
+	return usageSink{t: p.tracker, p: p}
 }
