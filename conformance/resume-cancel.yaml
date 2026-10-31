@@ -1,7 +1,7 @@
 name: opencode-resume-cancel
 plugin: {}
 initialize:
-  connection: { kind: opencode, config: {} }
+  connection: { kind: opencode }
 steps:
   - call: session/new
     params: { cwd: "{{tmpdir}}", mcpServers: [] }

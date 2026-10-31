@@ -32,3 +32,18 @@ jobs:
       - run: go build -o bin/arvel-plugin-opencode${{ runner.os == 'Windows' && '.exe' || '' }} ./cmd/arvel-plugin-opencode
         env:
           CGO_ENABLED: '0'
+  conformance:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+      - name: Install arvel-plugin-check
+        run: go install github.com/arvel-dev/arvel-sdk/cmd/arvel-plugin-check@v0.2.1
+      - name: Run release conformance (v1 and v2)
+        run: go run ./cmd/check-conformance

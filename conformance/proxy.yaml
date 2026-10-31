@@ -1,0 +1,11 @@
+name: opencode-proxy
+plugin: {}
+initialize:
+  connection: { kind: opencode }
+steps:
+  - call: session/new
+    params: { cwd: "{{tmpdir}}", mcpServers: [] }
+    save: { session: $.sessionId }
+  - call: session/prompt
+    params: { sessionId: "{{session}}", prompt: [ { type: text, text: "ENV: report proxy" } ] }
+    expect: { stopReason: end_turn }
