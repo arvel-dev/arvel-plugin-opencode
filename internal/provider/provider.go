@@ -1,13 +1,12 @@
 // SPDX-License-Identifier: Apache-2.0
 
-// Package provider implements the plugin.Provider for OpenCode. O1 wires
-// detection, the model catalogue, status and actions; sessions and usage
-// arrive in O2–O4.
+// Package provider implements the plugin.Provider for OpenCode. O1 wired
+// detection, the model catalogue, status and actions; O2 adds the per-session
+// upstream child and the proxy bridge; usage and typed errors arrive in O4.
 package provider
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"log/slog"
 	"sync"
@@ -15,13 +14,11 @@ import (
 
 	"github.com/arvel-dev/arvel-plugin-opencode/internal/detect"
 	"github.com/arvel-dev/arvel-plugin-opencode/internal/models"
+	"github.com/arvel-dev/arvel-plugin-opencode/internal/proxy"
 	"github.com/arvel-dev/arvel-sdk/plugin"
 	"github.com/arvel-dev/arvel-sdk/protocol"
 	"github.com/arvel-dev/arvel-sdk/redact"
 )
-
-// ErrNotImplemented marks provider surfaces that arrive in later milestones.
-var ErrNotImplemented = errors.New("not implemented until a later milestone")
 
 // installDocsURL is the install-help link, matching arvel.json
 // requires[].install.docs.
@@ -44,9 +41,17 @@ type Provider struct {
 	rd          *redact.Redactor
 	bin         string                    // resolved binary path ("" = not located)
 	cfgPath     string                    // opencodePath from the connection config
-	info        *detect.Info              // cached Detect result (the binary is fixed per process)
-	cache       models.Cache              // model catalogue cache
+	info        *detect.Info              // cached Detect result (guarded by detMu)
+	cache       models.Cache              // model catalogue cache (guarded by catMu)
 	newDetector func(bin string) detector // test seam; defaults to detect.New
+
+	// O2: session bridge inputs, immutable after Initialize.
+	sandbox           *protocol.SandboxInfo
+	loadProjectConfig bool
+	agent             string
+
+	detMu sync.Mutex // guards info (detection cache)
+	catMu sync.Mutex // guards cache (model catalogue)
 }
 
 var _ plugin.Provider = (*Provider)(nil)
@@ -68,14 +73,27 @@ func (p *Provider) SetHost(h plugin.Host) {
 	}
 }
 
-// Initialize resolves the binary path from the connection config. It does not
-// run opencode (that is Status/Models work).
+// Initialize resolves the binary path and stores the connection config. It does
+// not run opencode (that is Status/Models work).
 func (p *Provider) Initialize(_ context.Context, meta protocol.InitMeta) (plugin.Features, error) {
+	// info is guarded by detMu everywhere else; reset it under the same lock so
+	// the guard is consistent (Initialize never overlaps Status/Models in the
+	// SDK lifecycle, but the race detector must agree).
+	p.detMu.Lock()
+	p.info = nil
+	p.detMu.Unlock()
+
 	p.mu.Lock()
 	defer p.mu.Unlock()
-	p.info = nil
+	p.sandbox = meta.Sandbox
 	if s, ok := meta.Connection.Config["opencodePath"].(string); ok {
 		p.cfgPath = s
+	}
+	if b, ok := meta.Connection.Config["loadProjectConfig"].(bool); ok {
+		p.loadProjectConfig = b
+	}
+	if a, ok := meta.Connection.Config["agent"].(string); ok && a != "" {
+		p.agent = a
 	}
 	bin, err := detect.ResolveBin(p.cfgPath)
 	if err != nil {
@@ -86,7 +104,7 @@ func (p *Provider) Initialize(_ context.Context, meta protocol.InitMeta) (plugin
 	} else {
 		p.bin = bin
 	}
-	return plugin.Features{LoadSession: false}, nil
+	return plugin.Features{LoadSession: true}, nil
 }
 
 // Status reports install/version/login readiness (SPEC.md §9.1).
@@ -94,19 +112,19 @@ func (p *Provider) Status(ctx context.Context) (protocol.Status, error) {
 	ctx, cancel := context.WithTimeout(ctx, rpcBudget)
 	defer cancel()
 
-	p.mu.Lock()
-	defer p.mu.Unlock()
-
-	if p.bin == "" {
+	p.mu.RLock()
+	bin := p.bin
+	p.mu.RUnlock()
+	if bin == "" {
 		return notInstalledStatus(), nil
 	}
 
-	info, err := p.detectLocked(ctx)
+	info, err := p.detect(ctx)
 	if err != nil {
 		p.warn("cannot detect opencode", err)
 		return protocol.Status{State: protocol.StateError, Message: "Cannot detect OpenCode"}, nil
 	}
-	binInfo := &protocol.BinaryInfo{Name: "opencode", Path: p.rd.String(p.bin), Version: info.Version.String()}
+	binInfo := &protocol.BinaryInfo{Name: "opencode", Path: p.rd.String(bin), Version: info.Version.String()}
 	if info.Version.IsOutdated() {
 		return protocol.Status{
 			State:   protocol.StateOutdated,
@@ -115,7 +133,7 @@ func (p *Provider) Status(ctx context.Context) (protocol.Status, error) {
 		}, nil
 	}
 
-	det := p.newDetector(p.bin)
+	det := p.newDetector(bin)
 	providers, err := det.Auth(ctx, info.Flavour())
 	if err != nil {
 		p.warn("cannot read opencode providers", err)
@@ -127,7 +145,7 @@ func (p *Provider) Status(ctx context.Context) (protocol.Status, error) {
 
 	// No stored credentials: a keyless local provider (Ollama, LM Studio) still
 	// counts as configured (SPEC §9.1) when the catalogue is non-empty.
-	if res := p.catalogueLocked(ctx, info.Flavour(), false); res.Default != models.EmptyID {
+	if res := p.catalogue(ctx, info.Flavour(), false); res.Default != models.EmptyID {
 		return readyStatus(binInfo, 0), nil
 	}
 	return protocol.Status{
@@ -143,30 +161,88 @@ func (p *Provider) Models(ctx context.Context, refresh bool) (protocol.ModelsRes
 	ctx, cancel := context.WithTimeout(ctx, rpcBudget)
 	defer cancel()
 
-	p.mu.Lock()
-	defer p.mu.Unlock()
-
-	if p.bin == "" {
+	p.mu.RLock()
+	bin := p.bin
+	p.mu.RUnlock()
+	if bin == "" {
 		return models.Empty(), nil
 	}
-	info, err := p.detectLocked(ctx)
+	info, err := p.detect(ctx)
 	if err != nil {
 		p.warn("cannot detect opencode for the model catalogue", err)
 		return models.Empty(), nil
 	}
-	return p.catalogueLocked(ctx, info.Flavour(), refresh), nil
+	return p.catalogue(ctx, info.Flavour(), refresh), nil
+}
+
+// NewSession starts a per-session child and bridges it (SPEC §4, §7).
+func (p *Provider) NewSession(ctx context.Context, params plugin.SessionParams) (plugin.Session, error) {
+	cfg, err := p.proxyConfig(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return proxy.New(ctx, cfg, params)
+}
+
+// LoadSession resumes a session after a process restart (PROTOCOL §7.4).
+func (p *Provider) LoadSession(ctx context.Context, lp plugin.LoadParams) (plugin.Session, error) {
+	cfg, err := p.proxyConfig(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return proxy.Load(ctx, cfg, lp.SessionID, lp.SessionParams)
+}
+
+// proxyConfig snapshots the immutable bridge inputs and ensures detection.
+func (p *Provider) proxyConfig(ctx context.Context) (proxy.Config, error) {
+	p.mu.RLock()
+	bin := p.bin
+	sandbox := p.sandbox
+	lpc := p.loadProjectConfig
+	agent := p.agent
+	log := p.log
+	rd := p.rd
+	p.mu.RUnlock()
+
+	if bin == "" {
+		return proxy.Config{}, protocol.NewError(protocol.ErrBinaryMissing, "OpenCode is not installed", nil)
+	}
+	info, err := p.detect(ctx)
+	if err != nil {
+		return proxy.Config{}, protocol.NewError(protocol.ErrBinaryMissing, "cannot detect OpenCode", nil)
+	}
+	proxyStr := ""
+	if sandbox != nil {
+		proxyStr = sandbox.Proxy
+	}
+	return proxy.Config{
+		Bin:               bin,
+		Flavour:           info.Flavour(),
+		Agent:             agent,
+		LoadProjectConfig: lpc,
+		Proxy:             proxyStr,
+		Log:               log,
+		Redactor:          rd,
+	}, nil
 }
 
 // rpcBudget bounds one Status/Models call below the host's 10 s request
 // deadline, including a keyless-provider catalogue probe.
 const rpcBudget = 9 * time.Second
 
-// detectLocked returns the cached Detect result, spawning --version once.
-func (p *Provider) detectLocked(ctx context.Context) (detect.Info, error) {
+// detect returns the cached Detect result, spawning --version once. The
+// dedicated detMu means a slow --version never blocks Status/Models/sessions
+// that do not need detection.
+func (p *Provider) detect(ctx context.Context) (detect.Info, error) {
+	p.detMu.Lock()
+	defer p.detMu.Unlock()
 	if p.info != nil {
 		return *p.info, nil
 	}
-	det := p.newDetector(p.bin)
+	p.mu.RLock()
+	bin := p.bin
+	p.mu.RUnlock()
+	det := p.newDetector(bin)
 	info, err := det.Detect(ctx)
 	if err != nil {
 		return detect.Info{}, err
@@ -175,17 +251,22 @@ func (p *Provider) detectLocked(ctx context.Context) (detect.Info, error) {
 	return info, nil
 }
 
-// catalogueLocked returns a valid catalogue: the cache, a fresh build, or the
+// catalogue returns a valid catalogue: the cache, a fresh build, or the
 // hidden placeholder on any fetch/build failure (PROTOCOL §6.2 requires a
-// non-empty list; the host gates on status).
-func (p *Provider) catalogueLocked(ctx context.Context, f detect.Flavour, refresh bool) protocol.ModelsResult {
+// non-empty list; the host gates on status). catMu serialises cache access.
+func (p *Provider) catalogue(ctx context.Context, f detect.Flavour, refresh bool) protocol.ModelsResult {
+	p.catMu.Lock()
+	defer p.catMu.Unlock()
 	if cached, ok := p.cache.Get(p.now(), f, refresh); ok {
 		if p.log != nil {
 			p.log.Debug("model catalog cache hit", "flavour", f)
 		}
 		return cached
 	}
-	det := p.newDetector(p.bin)
+	p.mu.RLock()
+	bin := p.bin
+	p.mu.RUnlock()
+	det := p.newDetector(bin)
 	var raw []detect.RawModel
 	var err error
 	if f == detect.V1 {
@@ -274,17 +355,8 @@ func (p *Provider) Action(_ context.Context, id string) (protocol.ActionResult, 
 	}
 }
 
-// NewSession always fails: session support arrives in O2.
-func (p *Provider) NewSession(context.Context, plugin.SessionParams) (plugin.Session, error) {
-	return nil, ErrNotImplemented
-}
-
-// LoadSession always fails: LoadSession is not announced in O1.
-func (p *Provider) LoadSession(context.Context, plugin.LoadParams) (plugin.Session, error) {
-	return nil, ErrNotImplemented
-}
-
-// Shutdown releases nothing: no child processes exist in O1.
+// Shutdown closes nothing itself: the SDK closes every session (which kills
+// its child) before calling Shutdown.
 func (p *Provider) Shutdown(context.Context) error { return nil }
 
 // now is the cache clock; a method so tests can reason about it.

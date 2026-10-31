@@ -42,6 +42,26 @@ rl.on("line", (line) => {
     return;
   }
 
+  if (msg.method === "session/load") {
+    if (msg.params && msg.params.sessionId) sessions.add(msg.params.sessionId);
+    send({ jsonrpc: "2.0", id: msg.id, result: { configOptions: [] } });
+    return;
+  }
+
+  if (msg.method === "session/set_config_option") {
+    send({ jsonrpc: "2.0", id: msg.id, result: { configOptions: [] } });
+    return;
+  }
+
+  if (msg.method === "session/request_permission") {
+    send({
+      jsonrpc: "2.0",
+      id: msg.id,
+      result: { outcome: { outcome: "selected", optionId: "allow_once" } },
+    });
+    return;
+  }
+
   if (msg.method === "session/prompt") {
     send({
       jsonrpc: "2.0",

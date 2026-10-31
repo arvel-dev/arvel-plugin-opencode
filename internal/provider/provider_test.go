@@ -5,6 +5,8 @@ package provider
 import (
 	"context"
 	"errors"
+	"sync"
+	"sync/atomic"
 	"testing"
 
 	"github.com/arvel-dev/arvel-plugin-opencode/internal/detect"
@@ -14,16 +16,20 @@ import (
 )
 
 type fakeDetector struct {
-	info      detect.Info
-	detectErr error
-	providers []detect.Provider
-	authErr   error
-	v1models  []detect.RawModel
-	v2models  []detect.RawModel
-	modelsErr error
+	info        detect.Info
+	detectErr   error
+	providers   []detect.Provider
+	authErr     error
+	v1models    []detect.RawModel
+	v2models    []detect.RawModel
+	modelsErr   error
+	detectCalls atomic.Int32
 }
 
-func (f *fakeDetector) Detect(context.Context) (detect.Info, error) { return f.info, f.detectErr }
+func (f *fakeDetector) Detect(context.Context) (detect.Info, error) {
+	f.detectCalls.Add(1)
+	return f.info, f.detectErr
+}
 
 func (f *fakeDetector) Auth(context.Context, detect.Flavour) ([]detect.Provider, error) {
 	return f.providers, f.authErr
@@ -289,11 +295,55 @@ func TestAction_Unknown(t *testing.T) {
 	}
 }
 
-func TestNewSessionNotImplemented(t *testing.T) {
+func TestInitialize_Features(t *testing.T) {
+	t.Parallel()
+
+	p := New()
+	f, err := p.Initialize(context.Background(), protocol.InitMeta{
+		Connection: protocol.ConnectionInfo{Config: map[string]any{"opencodePath": "/nonexistent/opencode"}},
+	})
+	if err != nil {
+		t.Fatalf("Initialize: %v", err)
+	}
+	if !f.LoadSession {
+		t.Fatal("Features.LoadSession must be true in O2")
+	}
+}
+
+func TestNewSession_NoBinary(t *testing.T) {
 	t.Parallel()
 
 	_, err := New().NewSession(context.Background(), plugin.SessionParams{})
-	if !errors.Is(err, ErrNotImplemented) {
-		t.Fatalf("NewSession error = %v, want ErrNotImplemented", err)
+	var rpcErr *protocol.RPCError
+	if !errors.As(err, &rpcErr) {
+		t.Fatalf("NewSession error = %v, want *protocol.RPCError", err)
+	}
+	if arvel, ok := rpcErr.Arvel(); !ok || arvel.Code != protocol.ErrBinaryMissing {
+		t.Fatalf("arvel error = %+v, want binary_missing", arvel)
+	}
+}
+
+func TestStatusConcurrent(t *testing.T) {
+	t.Parallel()
+
+	fd := &fakeDetector{info: v1Info(), providers: []detect.Provider{{Name: "X", ID: "X"}}}
+	p := newTestProvider(fd, "/x/opencode")
+
+	var wg sync.WaitGroup
+	for i := 0; i < 8; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			if _, err := p.Status(context.Background()); err != nil {
+				t.Errorf("Status: %v", err)
+			}
+			if _, err := p.Models(context.Background(), false); err != nil {
+				t.Errorf("Models: %v", err)
+			}
+		}()
+	}
+	wg.Wait()
+	if n := fd.detectCalls.Load(); n != 1 {
+		t.Fatalf("Detect calls = %d, want 1 (detMu caches the first result)", n)
 	}
 }

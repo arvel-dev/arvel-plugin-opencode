@@ -16,6 +16,9 @@ it in and supplies a fake vendor (`cmd/check-conformance`) arrives in O5
 together with the remaining scenarios (`usage`, `resume`, `subagents`,
 `skills`, `proxy`).
 
-Status at O0: the files describe the target contract. Only the `basic` level
-(`arvel-plugin-check --level basic`) is expected to pass at O0; the session
-steps stay red until O2 implements sessions.
+Status at O2: sessions are implemented. `basic-turn` and `resume-cancel`
+describe the session contract (one `opencode acp` child per session, pass-through
+updates, resume via `session/load`). The generic runner that fills
+`conformance-env.yaml` and supplies a fake vendor (`cmd/check-conformance`)
+arrives in O5 together with the remaining scenarios (`usage`, `subagents`,
+`skills`, `proxy`, `cancel`).
