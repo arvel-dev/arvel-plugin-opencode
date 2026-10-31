@@ -142,6 +142,88 @@ func main() {
 				})
 				continue // wait for the permission response before finishing
 			}
+			if strings.HasPrefix(trimmed, "ERR:") {
+				name := strings.TrimSpace(strings.TrimPrefix(trimmed, "ERR:"))
+				switch name {
+				case "model":
+					send(map[string]any{"jsonrpc": "2.0", "id": m.ID, "error": map[string]any{
+						"code":    -32602,
+						"message": "Invalid params: model not found: nonexistent/nonexistent",
+						"data":    map[string]any{"modelId": "nonexistent/nonexistent", "providerId": "nonexistent"},
+					}})
+				case "provider.transport", "APIError":
+					send(map[string]any{"jsonrpc": "2.0", "id": m.ID, "error": map[string]any{
+						"code":    -32603,
+						"message": "Internal error: ECONNREFUSED",
+						"data":    map[string]any{"errorName": name, "service": "session"},
+					}})
+				default: // "provider.free-limit" or an explicit unknown marker
+					errorName := "provider.free-limit"
+					msg := "Internal error: Free usage limit reached."
+					if name != "provider.free-limit" {
+						errorName = "unknown.marker"
+						msg = "Internal error: unknown fake marker " + name
+					}
+					send(map[string]any{"jsonrpc": "2.0", "id": m.ID, "error": map[string]any{
+						"code":    -32603,
+						"message": msg,
+						"data":    map[string]any{"errorName": errorName, "service": "session"},
+					}})
+				}
+				continue
+			}
+			if strings.Contains(trimmed, "USAGE2") {
+				send(map[string]any{
+					"jsonrpc": "2.0",
+					"method":  "session/update",
+					"params": map[string]any{
+						"sessionId": p.SessionID,
+						"update": map[string]any{
+							"sessionUpdate": "usage_update",
+							"size":          200000,
+							"used":          2345,
+							"cost":          map[string]any{"amount": 0.84, "currency": "USD"},
+						},
+					},
+				})
+				updateText(p.SessionID, "fake pong 2")
+				result(m.ID, map[string]any{
+					"stopReason": "end_turn",
+					"usage": map[string]any{
+						"inputTokens":      200,
+						"outputTokens":     100,
+						"cachedReadTokens": 50,
+						"totalTokens":      350,
+					},
+				})
+				continue
+			}
+			if strings.Contains(trimmed, "USAGE") {
+				send(map[string]any{
+					"jsonrpc": "2.0",
+					"method":  "session/update",
+					"params": map[string]any{
+						"sessionId": p.SessionID,
+						"update": map[string]any{
+							"sessionUpdate": "usage_update",
+							"size":          200000,
+							"used":          1234,
+							"cost":          map[string]any{"amount": 0.42, "currency": "USD"},
+						},
+					},
+				})
+				updateText(p.SessionID, "fake pong")
+				result(m.ID, map[string]any{
+					"stopReason": "end_turn",
+					"usage": map[string]any{
+						"inputTokens":      100,
+						"outputTokens":     50,
+						"cachedReadTokens": 25,
+						"totalTokens":      175,
+					},
+				})
+				continue
+			}
 			updateText(p.SessionID, "fake pong")
 			result(m.ID, map[string]any{"stopReason": "end_turn"})
 		case "session/request_permission":
