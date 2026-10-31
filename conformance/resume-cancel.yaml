@@ -1,0 +1,20 @@
+name: opencode-resume-cancel
+plugin: {}
+initialize:
+  connection: { kind: opencode, config: {} }
+steps:
+  - call: session/new
+    params: { cwd: "{{tmpdir}}", mcpServers: [] }
+    save: { session: $.sessionId }
+  - call: session/prompt
+    params: { sessionId: "{{session}}", prompt: [ { type: text, text: "ping" } ] }
+    expectUpdates:
+      - sessionUpdate: agent_message_chunk
+    expect: { stopReason: end_turn }
+  - call: session/load
+    params: { sessionId: "{{session}}", cwd: "{{tmpdir}}", mcpServers: [] }
+  - call: session/prompt
+    params: { sessionId: "{{session}}", prompt: [ { type: text, text: "ping again" } ] }
+    expectUpdates:
+      - sessionUpdate: agent_message_chunk
+    expect: { stopReason: end_turn }
