@@ -97,10 +97,12 @@ Independent open-source project, not affiliated with the OpenCode project or any
 ```bash
 go test -race ./...
 go build -o dist/arvel-plugin-opencode ./cmd/arvel-plugin-opencode
-arvel-plugin-check --level release --scenarios ./conformance -- ./dist/arvel-plugin-opencode
+go run ./cmd/check-conformance
 ```
 
-Fixtures for both OpenCode versions are described in `testdata/fixtures/README.md`. E2E tests: `ARVEL_E2E=1 go test -tags e2e ./e2e/...`. Use a free or local model for these.
+Fixtures for both OpenCode versions are described in `testdata/fixtures/README.md`.
+E2E tests (opt-in, real model): `ARVEL_E2E=1 go test -tags e2e ./e2e/...`. Use a
+free or local model for these.
 
 ## License
 

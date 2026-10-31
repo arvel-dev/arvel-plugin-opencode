@@ -1,0 +1,17 @@
+name: opencode-subagents
+plugin: {}
+initialize:
+  connection: { kind: opencode }
+steps:
+  - call: session/new
+    params: { cwd: "{{tmpdir}}", mcpServers: [] }
+    save: { session: $.sessionId }
+  - call: session/prompt
+    params: { sessionId: "{{session}}", prompt: [ { type: text, text: "SUBAGENT: check this" } ] }
+    expectUpdates:
+      - sessionUpdate: agent_message_chunk
+        subset:
+          _meta:
+            opencode/child-session:
+              id: ses_child
+    expect: { stopReason: end_turn }

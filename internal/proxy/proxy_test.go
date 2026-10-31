@@ -208,8 +208,8 @@ func currentValue(opts []acp.SessionConfigOption, id string) string {
 
 func TestNew_IDAndConfigOptions(t *testing.T) {
 	s := newSession(t, detect.V2, "a/b", "high")
-	if s.ID() != "ses_fake" {
-		t.Fatalf("id = %q", s.ID())
+	if s.ID() == "" {
+		t.Fatal("empty session id")
 	}
 	opts := s.ConfigOptions()
 	for _, id := range []string{"model", "effort", "mode"} {
@@ -298,6 +298,7 @@ func TestIdleCloseAndResume(t *testing.T) {
 	defer func() { idleAfter = old }()
 
 	s := newSession(t, detect.V2, "a/b", "")
+	id := s.ID()
 	deadline := time.Now().Add(5 * time.Second)
 	for {
 		s.mu.Lock()
@@ -321,8 +322,8 @@ func TestIdleCloseAndResume(t *testing.T) {
 	if got := currentValue(s.ConfigOptions(), "model"); got != "LOADED" {
 		t.Fatalf("resumed config = %q, want LOADED (session/load)", got)
 	}
-	if s.ID() != "ses_fake" {
-		t.Fatalf("id changed across resume: %q", s.ID())
+	if s.ID() != id {
+		t.Fatalf("id changed across resume: %q -> %q", id, s.ID())
 	}
 }
 

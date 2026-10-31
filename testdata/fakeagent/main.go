@@ -11,19 +11,93 @@ package main
 import (
 	"bufio"
 	"encoding/json"
+	"fmt"
 	"os"
+	"path/filepath"
+	"slices"
 	"strings"
 )
 
+// flavourEnv returns the fake flavour: v1 or v2 (default v2).
+func flavourEnv() string {
+	if f := os.Getenv("FAKE_OPENCODE_FLAVOUR"); f == "v1" {
+		return "v1"
+	}
+	return "v2"
+}
+
+// printAuthList prints `opencode auth list` output in the flavour's shape
+// (FINDINGS V3): v2 rows are "<name>  <id>  stored", v1 rows are "●  <name> <type>".
+func printAuthList() {
+	if flavourEnv() == "v2" {
+		fmt.Println("DeepSeek  deepseek  stored")
+		return
+	}
+	fmt.Println("●  DeepSeek api")
+}
+
+// printModels prints `opencode models` (v2: one provider/model per line) or
+// `opencode models --verbose` (v1: header line + a JSON object per model).
+func printModels(verbose bool) {
+	if !verbose {
+		fmt.Println("opencode/beam-free")
+		fmt.Println("opencode/big-pickle")
+		fmt.Println("deepseek/deepseek-v4-pro")
+		return
+	}
+	models := []struct {
+		id, name, provider string
+		context            int
+		image              bool
+		variants           string
+	}{
+		{"beam-free", "Beam Free", "opencode", 1048576, true, `{"low":{"reasoningEffort":"low"},"high":{"reasoningEffort":"high"}}`},
+		{"deepseek-v4-pro", "DeepSeek V4 Pro", "deepseek", 131072, true, `{"low":{"reasoningEffort":"low"},"high":{"reasoningEffort":"high"}}`},
+	}
+	for _, m := range models {
+		fmt.Printf("%s/%s\n", m.provider, m.id)
+		fmt.Printf(`{"id":%q,"providerID":%q,"name":%q,"api":{"url":"https://example.invalid/v1"},"status":"active","limit":{"context":%d,"output":131072},"capabilities":{"input":{"image":%t}},"variants":%s}`+"\n",
+			m.id, m.provider, m.name, m.context, m.image, m.variants)
+	}
+}
+
 func main() {
+	args := os.Args[1:]
+	if slices.Contains(args, "--version") {
+		v := os.Getenv("FAKE_OPENCODE_VERSION")
+		if v == "" {
+			v = "opencode v2.2.5"
+		}
+		fmt.Println(v)
+		return
+	}
+	switch {
+	case len(args) == 2 && args[0] == "auth" && args[1] == "list":
+		printAuthList()
+		return
+	case len(args) == 1 && args[0] == "models":
+		printModels(false)
+		return
+	case len(args) == 2 && args[0] == "models" && args[1] == "--verbose":
+		printModels(true)
+		return
+	case len(args) == 1 && args[0] == "acp":
+		// fall through to the ACP loop below
+	default:
+		fmt.Fprintf(os.Stderr, "fakeopencode: unknown args %v\n", args)
+		os.Exit(2)
+	}
+
 	sc := bufio.NewScanner(os.Stdin)
 	sc.Buffer(make([]byte, 0, 64*1024), 64*1024)
 	w := bufio.NewWriter(os.Stdout)
 	state := map[string]string{"model": "a/b", "effort": "default", "mode": "build"}
 
 	var nextReqID int64 = 1000
+	var nextSessionID int
 	var pendingPromptID json.RawMessage
 	var pendingSession string
+	var holdMode bool
 
 	send := func(v any) {
 		b, _ := json.Marshal(v)
@@ -43,6 +117,37 @@ func main() {
 				"update": map[string]any{
 					"sessionUpdate": "agent_message_chunk",
 					"content":       map[string]any{"type": "text", "text": text},
+				},
+			},
+		})
+	}
+	// reportEnv emits the proxy environment the child actually sees as one
+	// NAME=VALUE line per variable in the agent_message_chunk text (the release
+	// proxy probe parses these; PROTOCOL §15, SDK proxy.go checkProxyEnv).
+	reportEnv := func(session string) {
+		var b strings.Builder
+		for _, name := range []string{"HTTPS_PROXY", "HTTP_PROXY", "ALL_PROXY", "NO_PROXY", "SSH_AUTH_SOCK"} {
+			fmt.Fprintf(&b, "%s=%s\n", name, os.Getenv(name))
+		}
+		updateText(session, b.String())
+	}
+	// childChunk emits an agent_message_chunk whose update carries
+	// _meta["opencode/child-session"], matching FINDINGS V7 and the shape
+	// translateUpdateMeta decodes (internal/proxy/meta.go).
+	childChunk := func(session, text string) {
+		send(map[string]any{
+			"jsonrpc": "2.0",
+			"method":  "session/update",
+			"params": map[string]any{
+				"sessionId": session,
+				"update": map[string]any{
+					"sessionUpdate": "agent_message_chunk",
+					"content":       map[string]any{"type": "text", "text": text},
+					"_meta": map[string]any{
+						"opencode/child-session": map[string]any{
+							"id": "ses_child", "parentID": "t_sub", "title": "Sub", "depth": 1,
+						},
+					},
 				},
 			},
 		})
@@ -75,6 +180,15 @@ func main() {
 			}
 			continue
 		}
+		if m.Method == "session/cancel" {
+			if holdMode && pendingPromptID != nil {
+				result(pendingPromptID, map[string]any{"stopReason": "cancelled"})
+				pendingPromptID = nil
+				pendingSession = ""
+				holdMode = false
+			}
+			continue
+		}
 		switch m.Method {
 		case "initialize":
 			result(m.ID, map[string]any{
@@ -83,7 +197,8 @@ func main() {
 				"agentInfo":         map[string]any{"name": "fake-opencode", "version": "0.0.0"},
 			})
 		case "session/new":
-			result(m.ID, map[string]any{"sessionId": "ses_fake", "configOptions": configOptions(state)})
+			nextSessionID++
+			result(m.ID, map[string]any{"sessionId": fmt.Sprintf("ses_%d_%d", os.Getpid(), nextSessionID), "configOptions": configOptions(state)})
 		case "session/load":
 			saved := state["model"]
 			state["model"] = "LOADED"
@@ -114,6 +229,29 @@ func main() {
 			trimmed := strings.TrimSpace(text.String())
 			if strings.Contains(trimmed, "HANG") {
 				continue // leave the turn unanswered
+			}
+			if strings.Contains(trimmed, "HOLD") {
+				updateText(p.SessionID, "holding")
+				pendingPromptID = append(json.RawMessage(nil), m.ID...)
+				pendingSession = p.SessionID
+				holdMode = true
+				continue
+			}
+			if strings.HasPrefix(trimmed, "ENV:") {
+				reportEnv(p.SessionID)
+				result(m.ID, map[string]any{"stopReason": "end_turn"})
+				continue
+			}
+			if strings.HasPrefix(trimmed, "SUBAGENT:") {
+				childChunk(p.SessionID, "sub pong")
+				updateText(p.SessionID, "parent pong")
+				result(m.ID, map[string]any{"stopReason": "end_turn"})
+				continue
+			}
+			if strings.HasPrefix(trimmed, "SKILLS:") {
+				updateText(p.SessionID, reportSkills())
+				result(m.ID, map[string]any{"stopReason": "end_turn"})
+				continue
 			}
 			if strings.HasPrefix(trimmed, "PERM:") {
 				cmd := strings.TrimSpace(strings.TrimPrefix(trimmed, "PERM:"))
@@ -232,6 +370,32 @@ func main() {
 		// Notifications (session/cancel, notifications/initialized) have no id
 		// and are intentionally not answered.
 	}
+}
+
+// reportSkills returns one line per file under <cwd>/.opencode/skills and the
+// first line of the instructions file named in OPENCODE_CONFIG_CONTENT, proving
+// per-session skills materialization and instructions delivery.
+func reportSkills() string {
+	cwd, _ := os.Getwd()
+	var b strings.Builder
+	entries, err := os.ReadDir(filepath.Join(cwd, ".opencode", "skills"))
+	if err == nil {
+		for _, e := range entries {
+			fmt.Fprintf(&b, "skill=%s\n", e.Name())
+		}
+	}
+	var cfg struct {
+		Instructions []string `json:"instructions"`
+	}
+	if v := os.Getenv("OPENCODE_CONFIG_CONTENT"); v != "" {
+		if json.Unmarshal([]byte(v), &cfg) == nil && len(cfg.Instructions) > 0 {
+			if data, err := os.ReadFile(cfg.Instructions[0]); err == nil {
+				first := strings.TrimSpace(strings.SplitN(string(data), "\n", 2)[0])
+				fmt.Fprintf(&b, "instruction=%s\n", first)
+			}
+		}
+	}
+	return strings.TrimRight(b.String(), "\n")
 }
 
 func configOptions(state map[string]string) []any {

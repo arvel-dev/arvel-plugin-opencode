@@ -1,7 +1,7 @@
 name: opencode-basic-turn
 plugin: {}
 initialize:
-  connection: { kind: opencode, config: {} }
+  connection: { kind: opencode }
 steps:
   - call: _arvel/status
     expect: { state: ready }
