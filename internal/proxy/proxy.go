@@ -15,6 +15,7 @@ import (
 	"github.com/arvel-dev/arvel-plugin-opencode/internal/detect"
 	"github.com/arvel-dev/arvel-plugin-opencode/internal/upstream"
 	"github.com/arvel-dev/arvel-sdk/plugin"
+	"github.com/arvel-dev/arvel-sdk/protocol"
 	"github.com/arvel-dev/arvel-sdk/redact"
 )
 
@@ -35,6 +36,7 @@ type Config struct {
 	Flavour           detect.Flavour
 	Agent             string // connection config agent, default "build"
 	LoadProjectConfig bool
+	DataDir           string // plugin data dir for per-session artifacts
 	Proxy             string // sandbox.proxy ("" = none)
 	Log               *slog.Logger
 	Redactor          *redact.Redactor
@@ -61,7 +63,13 @@ type Session struct {
 	mcp     []acp.McpServer
 	model   string
 	effort  string
+	meta    protocol.SessionMeta
+	allow   allowList       // session-local "always allow" set (SPEC §6.2)
 	baseCtx context.Context // session lifetime; the child's lifetime is tied to it
+
+	inlineConfig  []byte // OPENCODE_CONFIG_CONTENT (computed once)
+	runDir        string // <DataDir>/run/<runID>; "" when none
+	skillsCleanup func() // skills.Materialize cleanup (never nil after prepare)
 
 	mu          sync.Mutex // guards client, opts and the lifecycle flags
 	client      *upstream.Client
@@ -78,22 +86,32 @@ var _ plugin.ConfigOptioner = (*Session)(nil)
 
 // New starts a child and creates the upstream session (session/new).
 func New(ctx context.Context, cfg Config, params plugin.SessionParams) (*Session, error) {
-	c, err := start(ctx, cfg, params)
-	if err != nil {
+	s := &Session{
+		cfg: cfg, cwd: params.CWD, mcp: filterMCP(params.MCPServers, cfg.Log),
+		meta: params.Meta, model: params.Meta.Model, effort: string(params.Meta.Effort),
+		baseCtx: ctx,
+	}
+	if err := s.prepare(); err != nil {
+		s.cleanupArtifacts()
 		return nil, err
 	}
-	res, err := c.NewSession(ctx, params.CWD, params.MCPServers)
+	c, err := s.start(ctx)
+	if err != nil {
+		s.cleanupArtifacts()
+		return nil, err
+	}
+	res, err := c.NewSession(ctx, s.cwd, s.mcp)
 	if err != nil {
 		_ = c.Close()
+		s.cleanupArtifacts()
 		return nil, fmt.Errorf("proxy: session/new: %w", err)
 	}
-	s := &Session{
-		id: string(res.SessionId), cfg: cfg, cwd: params.CWD, mcp: params.MCPServers,
-		baseCtx: ctx, client: c, opts: res.ConfigOptions,
-		model: params.Meta.Model, effort: string(params.Meta.Effort),
-	}
+	s.id = string(res.SessionId)
+	s.client = c
+	s.opts = res.ConfigOptions
 	if err := s.applyInitial(ctx); err != nil {
 		_ = c.Close()
+		s.cleanupArtifacts()
 		return nil, err
 	}
 	s.armIdle()
@@ -102,38 +120,35 @@ func New(ctx context.Context, cfg Config, params plugin.SessionParams) (*Session
 
 // Load starts a child and resumes the upstream session (session/load).
 func Load(ctx context.Context, cfg Config, id string, params plugin.SessionParams) (*Session, error) {
-	c, err := start(ctx, cfg, params)
-	if err != nil {
+	s := &Session{
+		id: id, cfg: cfg, cwd: params.CWD, mcp: filterMCP(params.MCPServers, cfg.Log),
+		meta: params.Meta, model: params.Meta.Model, effort: string(params.Meta.Effort),
+		baseCtx: ctx,
+	}
+	if err := s.prepare(); err != nil {
+		s.cleanupArtifacts()
 		return nil, err
 	}
-	res, err := c.LoadSession(ctx, acp.SessionId(id), params.CWD, params.MCPServers)
+	c, err := s.start(ctx)
+	if err != nil {
+		s.cleanupArtifacts()
+		return nil, err
+	}
+	res, err := c.LoadSession(ctx, acp.SessionId(id), s.cwd, s.mcp)
 	if err != nil {
 		_ = c.Close()
+		s.cleanupArtifacts()
 		return nil, fmt.Errorf("proxy: session/load: %w", err)
 	}
-	s := &Session{
-		id: id, cfg: cfg, cwd: params.CWD, mcp: params.MCPServers,
-		baseCtx: ctx, client: c, opts: res.ConfigOptions,
-		model: params.Meta.Model, effort: string(params.Meta.Effort),
-	}
+	s.client = c
+	s.opts = res.ConfigOptions
 	if err := s.applyInitial(ctx); err != nil {
 		_ = c.Close()
+		s.cleanupArtifacts()
 		return nil, err
 	}
 	s.armIdle()
 	return s, nil
-}
-
-// start spawns the child for a session.
-func start(ctx context.Context, cfg Config, params plugin.SessionParams) (*upstream.Client, error) {
-	return upstream.Start(ctx, upstream.Config{
-		Bin:               cfg.Bin,
-		CWD:               params.CWD,
-		LoadProjectConfig: cfg.LoadProjectConfig,
-		Proxy:             cfg.Proxy,
-		Log:               cfg.Log,
-		Redactor:          cfg.Redactor,
-	})
 }
 
 // applyInitial sets the chosen model/effort/agent after session/new or load.
@@ -207,5 +222,6 @@ func (s *Session) Close(ctx context.Context) error {
 	if c != nil {
 		_ = c.Close()
 	}
+	s.cleanupArtifacts()
 	return nil
 }

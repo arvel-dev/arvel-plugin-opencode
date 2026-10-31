@@ -4,7 +4,16 @@ initialize:
   connection: { kind: opencode, config: {} }
 steps:
   - call: session/new
-    params: { cwd: "{{tmpdir}}", mcpServers: [] }
+    params:
+      cwd: "{{tmpdir}}"
+      mcpServers: []
+      _meta:
+        arvel:
+          permissions:
+            read: allow
+            edit: ask
+            commands: { default: ask, allow: [ "go test *" ], deny: [ "git push *" ] }
+            network: ask
     save: { session: $.sessionId }
   - call: session/prompt
     params: { sessionId: "{{session}}", prompt: [ { type: text, text: "please run the tests" } ] }

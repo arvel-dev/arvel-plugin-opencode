@@ -54,14 +54,7 @@ func (s *Session) ensureClient() (*upstream.Client, error) {
 	}
 	s.mu.Unlock()
 
-	client, err := upstream.Start(s.baseCtx, upstream.Config{
-		Bin:               s.cfg.Bin,
-		CWD:               s.cwd,
-		LoadProjectConfig: s.cfg.LoadProjectConfig,
-		Proxy:             s.cfg.Proxy,
-		Log:               s.cfg.Log,
-		Redactor:          s.cfg.Redactor,
-	})
+	client, err := s.start(s.baseCtx)
 	if err != nil {
 		return nil, fmt.Errorf("proxy: resume start: %w", err)
 	}

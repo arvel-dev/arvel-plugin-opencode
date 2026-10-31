@@ -66,10 +66,11 @@ func repoRoot(m *testing.M) string {
 
 // recordingOutput records session/update calls and answers permissions.
 type recordingOutput struct {
-	mu       sync.Mutex
-	updates  []acp.SessionUpdate
-	metas    []*protocol.UpdateMeta
-	decision plugin.PermissionDecision
+	mu        sync.Mutex
+	updates   []acp.SessionUpdate
+	metas     []*protocol.UpdateMeta
+	decision  plugin.PermissionDecision
+	permCalls int
 }
 
 func (r *recordingOutput) Update(u acp.SessionUpdate, meta *protocol.UpdateMeta) error {
@@ -81,6 +82,9 @@ func (r *recordingOutput) Update(u acp.SessionUpdate, meta *protocol.UpdateMeta)
 }
 
 func (r *recordingOutput) RequestPermission(_ context.Context, _ plugin.PermissionRequest) (plugin.PermissionDecision, error) {
+	r.mu.Lock()
+	r.permCalls++
+	r.mu.Unlock()
 	return r.decision, nil
 }
 
@@ -88,6 +92,25 @@ func (r *recordingOutput) count() int {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	return len(r.updates)
+}
+
+// callCount returns how many times the host was asked for permission.
+func (r *recordingOutput) callCount() int {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	return r.permCalls
+}
+
+// lastText returns the text of the last agent_message_chunk update.
+func (r *recordingOutput) lastText() string {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	for i := len(r.updates) - 1; i >= 0; i-- {
+		if c := r.updates[i].AgentMessageChunk; c != nil && c.Content.Text != nil {
+			return c.Content.Text.Text
+		}
+	}
+	return ""
 }
 
 func newSession(t *testing.T, flavour detect.Flavour, model, effort string) *Session {
@@ -107,6 +130,71 @@ func newSession(t *testing.T, flavour detect.Flavour, model, effort string) *Ses
 		_ = s.Close(c)
 	})
 	return s
+}
+
+func TestNewWritesInstructions(t *testing.T) {
+	dataDir := t.TempDir()
+	s, err := New(context.Background(), Config{Bin: fakeAgentBin, Flavour: detect.V2, DataDir: dataDir}, plugin.SessionParams{
+		CWD:  t.TempDir(),
+		Meta: protocol.SessionMeta{Instructions: "Be concise", Language: "ru"},
+	})
+	if err != nil {
+		t.Fatalf("New: %v", err)
+	}
+	t.Cleanup(func() {
+		c, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		_ = s.Close(c)
+	})
+
+	matches, err := filepath.Glob(filepath.Join(dataDir, "run", "*", "instructions.md"))
+	if err != nil || len(matches) != 1 {
+		t.Fatalf("instructions matches = %v, err = %v", matches, err)
+	}
+	got, err := os.ReadFile(matches[0])
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := "Be concise\n\nReply to the user in ru.\n"
+	if string(got) != want {
+		t.Fatalf("instructions = %q, want %q", got, want)
+	}
+}
+
+func TestNewMaterializesSkills(t *testing.T) {
+	cwd := t.TempDir()
+	src := t.TempDir()
+	skillDir := filepath.Join(src, "alpha")
+	if err := os.MkdirAll(skillDir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(skillDir, "SKILL.md"), []byte("---\nname: alpha\n---\nbody\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	s, err := New(context.Background(), Config{Bin: fakeAgentBin, Flavour: detect.V2}, plugin.SessionParams{
+		CWD: cwd,
+		Meta: protocol.SessionMeta{Skills: []protocol.SkillRef{
+			{Name: "alpha", Path: skillDir, Invocation: protocol.SkillInvocationAuto},
+		}},
+	})
+	if err != nil {
+		t.Fatalf("New: %v", err)
+	}
+
+	materialized := filepath.Join(cwd, ".opencode", "skills", "alpha", "SKILL.md")
+	if _, err := os.Stat(materialized); err != nil {
+		t.Fatalf("skill not materialized: %v", err)
+	}
+
+	c, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	if err := s.Close(c); err != nil {
+		t.Fatalf("Close: %v", err)
+	}
+	if _, err := os.Stat(filepath.Join(cwd, ".opencode", "skills", "alpha")); !os.IsNotExist(err) {
+		t.Fatalf("skill copy not removed after Close: %v", err)
+	}
 }
 
 func currentValue(opts []acp.SessionConfigOption, id string) string {
@@ -267,18 +355,27 @@ func TestCancel_KillsStuckChild(t *testing.T) {
 
 func TestRequestPermission_Selected(t *testing.T) {
 	kind := acp.ToolKindExecute
-	sink := &outputSink{out: &recordingOutput{decision: plugin.PermissionDecision{OptionID: "allow_once"}}}
+	sink := &outputSink{
+		out: &recordingOutput{decision: plugin.PermissionDecision{OptionID: "once"}},
+		s:   newEvalSession(nil), // nil policy => ask => forward to host
+	}
 	resp := sink.RequestPermission(context.Background(), acp.RequestPermissionRequest{
 		ToolCall: acp.ToolCallUpdate{Kind: &kind},
+		Options:  permissionOptions(),
 	})
-	if resp.Outcome.Selected == nil || string(resp.Outcome.Selected.OptionId) != "allow_once" {
+	if resp.Outcome.Selected == nil || string(resp.Outcome.Selected.OptionId) != "once" {
 		t.Fatalf("unexpected outcome: %+v", resp.Outcome)
 	}
 }
 
 func TestRequestPermission_Cancelled(t *testing.T) {
-	sink := &outputSink{out: &recordingOutput{decision: plugin.PermissionDecision{Cancelled: true}}}
-	resp := sink.RequestPermission(context.Background(), acp.RequestPermissionRequest{})
+	sink := &outputSink{
+		out: &recordingOutput{decision: plugin.PermissionDecision{Cancelled: true}},
+		s:   newEvalSession(nil),
+	}
+	resp := sink.RequestPermission(context.Background(), acp.RequestPermissionRequest{
+		Options: permissionOptions(),
+	})
 	if resp.Outcome.Cancelled == nil {
 		t.Fatalf("want cancelled outcome, got %+v", resp.Outcome)
 	}

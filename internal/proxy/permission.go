@@ -11,8 +11,7 @@ import (
 	"github.com/arvel-dev/arvel-sdk/protocol"
 )
 
-// categoryFromKind maps an ACP tool kind to a permission category. O2 keeps
-// the minimal mapping; O3 adds command text, paths and hosts.
+// categoryFromKind maps an ACP tool kind to a permission category (PROTOCOL §7.3).
 func categoryFromKind(k *acp.ToolKind) protocol.PermissionCategory {
 	if k == nil {
 		return protocol.PermissionCategoryOther
@@ -31,16 +30,56 @@ func categoryFromKind(k *acp.ToolKind) protocol.PermissionCategory {
 	}
 }
 
-// RequestPermission forwards an upstream permission request to the host and
-// maps the decision back to the upstream option ids (O2 pass-through).
+// RequestPermission evaluates the upstream permission request against Arvel
+// policy (SPEC §6.2): deny/allow are answered locally; ask is forwarded to the
+// host with _meta.arvel; the host's "always" is kept session-local and answered
+// "once" upstream.
 func (o *outputSink) RequestPermission(ctx context.Context, req acp.RequestPermissionRequest) acp.RequestPermissionResponse {
+	category := categoryFromKind(req.ToolCall.Kind)
+	key := allowKey(category, req.ToolCall)
+
+	if o.s.allow.hit(key) {
+		if id, ok := optionByKind(req.Options, acp.PermissionOptionKindAllowOnce); ok {
+			return selected(id)
+		}
+		return cancelled()
+	}
+
+	switch o.s.decide(category, req.ToolCall) {
+	case protocol.PermissionLevelDeny:
+		if id, ok := optionByKind(req.Options, acp.PermissionOptionKindRejectOnce); ok {
+			return selected(id)
+		}
+		return cancelled()
+	case protocol.PermissionLevelAllow:
+		if id, ok := optionByKind(req.Options, acp.PermissionOptionKindAllowOnce); ok {
+			return selected(id)
+		}
+		return cancelled()
+	}
+
 	dec, err := o.out.RequestPermission(ctx, plugin.PermissionRequest{
 		ToolCall: req.ToolCall,
 		Options:  req.Options,
-		Meta:     protocol.PermissionMeta{Category: categoryFromKind(req.ToolCall.Kind)},
+		Meta:     permissionMeta(category, req.ToolCall),
 	})
 	if err != nil || dec.Cancelled {
-		return acp.RequestPermissionResponse{Outcome: acp.NewRequestPermissionOutcomeCancelled()}
+		return cancelled()
 	}
-	return acp.RequestPermissionResponse{Outcome: acp.NewRequestPermissionOutcomeSelected(acp.PermissionOptionId(dec.OptionID))}
+	if isKind(req.Options, dec.OptionID, acp.PermissionOptionKindAllowAlways) {
+		o.s.allow.add(key)
+		if id, ok := optionByKind(req.Options, acp.PermissionOptionKindAllowOnce); ok {
+			return selected(id)
+		}
+		return cancelled()
+	}
+	return selected(acp.PermissionOptionId(dec.OptionID))
+}
+
+func selected(id acp.PermissionOptionId) acp.RequestPermissionResponse {
+	return acp.RequestPermissionResponse{Outcome: acp.NewRequestPermissionOutcomeSelected(id)}
+}
+
+func cancelled() acp.RequestPermissionResponse {
+	return acp.RequestPermissionResponse{Outcome: acp.NewRequestPermissionOutcomeCancelled()}
 }
